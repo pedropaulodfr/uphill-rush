@@ -1,0 +1,81 @@
+<meta charset="utf-8">
+<title>Serra Turbo</title>
+<meta name="description" content="Jogo de motocross 2D com física, fases, estrelas, turbo e manobras.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="style.css">
+
+<div id="stage">
+  <canvas id="game" width="960" height="540" aria-label="Pista do jogo"></canvas>
+
+  <div id="hud" aria-live="polite">
+    <div class="hud-top">
+      <div class="badge">
+        <span class="lbl">Vidas</span>
+        <div id="lives" class="lives"></div>
+      </div>
+      <div class="badge" id="timeBox">
+        <span class="lbl">Tempo</span>
+        <div class="val-row">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="9" fill="#fff8e1" stroke="#2a1d08" stroke-width="2.2"/><path d="M12 8v5l3.2 2" fill="none" stroke="#2a1d08" stroke-width="2.2" stroke-linecap="round"/><rect x="9.5" y="1.5" width="5" height="3" rx="1" fill="#2a1d08"/></svg>
+          <span id="time" class="val">0:00</span>
+        </div>
+      </div>
+      <div class="badge">
+        <span class="lbl">Pontos</span>
+        <span id="score" class="val">0</span>
+      </div>
+      <div class="badge badge-level">
+        <span class="lbl">Fase <b id="levelNum">1</b></span>
+        <span id="levelName" class="val small">Campos Verdes</span>
+      </div>
+      <div class="map-frame"><canvas id="minimap" width="200" height="72" aria-label="Mapa da fase"></canvas></div>
+    </div>
+
+    <div class="hud-bottom">
+      <div class="badge badge-col">
+        <span class="lbl">Turbo <kbd>Espaço</kbd></span>
+        <div id="turbo" class="turbo"><i><b></b></i><i><b></b></i><i><b></b></i></div>
+        <span class="lbl">Estrelas <em id="starCount">0/8</em></span>
+        <div id="stars" class="stars"></div>
+      </div>
+      <div class="badge badge-progress">
+        <span class="lbl">Progresso</span>
+        <div class="bar">
+          <div class="bar-track"><div id="prog"></div></div>
+          <div id="progTicks"></div>
+          <span class="flag" aria-hidden="true"></span>
+          <span id="progIcon"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="toasts"></div>
+    <div id="bigmsg"></div>
+  </div>
+
+  <div id="overlay"><div id="card" class="card"></div></div>
+
+  <div id="touch">
+    <div class="tgroup">
+      <button type="button" id="tLeft" data-key="left" aria-label="Inclinar para trás">◀</button>
+      <button type="button" id="tRight" data-key="right" aria-label="Inclinar para frente">▶</button>
+    </div>
+    <div class="tgroup">
+      <button type="button" id="tTurbo" data-key="turbo" class="t-turbo" aria-label="Turbo">T</button>
+      <button type="button" id="tDown" data-key="down" aria-label="Frear">▼</button>
+      <button type="button" id="tUp" data-key="up" class="t-gas" aria-label="Acelerar">▲</button>
+    </div>
+  </div>
+
+  <button type="button" id="btnMute" class="corner-btn" aria-label="Som ligado/desligado">♪</button>
+  <button type="button" id="btnPause" class="corner-btn corner-btn-2" aria-label="Pausar">II</button>
+</div>
+
+<script src="js/physics.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/scenery.js"></script>
+<script src="js/bike.js"></script>
+<script src="js/game.js"></script>
