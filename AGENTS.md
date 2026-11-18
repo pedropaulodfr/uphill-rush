@@ -47,7 +47,7 @@ Atenção ao **cache do navegador**: depois de editar um `.js`, use Ctrl+F5. Nos
 
 ### Sobre o `index.html`
 
-O `index.html` **não tem** `<!doctype html>`, `<html>`, `<head>` nem a meta `viewport`. Isso é proposital: o jogo também é publicado como *Artifact* no claude.ai, que já embrulha a página com essas partes. Para hospedar como site comum (ex.: GitHub Pages), vale adicionar `<!doctype html>` e `<meta name="viewport" content="width=device-width, initial-scale=1">`; sem isso o jogo funciona, mas o navegador entra em modo de compatibilidade e, no celular, a tela pode abrir afastada.
+O `index.html` é um documento completo (`<!doctype html>`, `lang="pt-BR"` e meta `viewport`), para funcionar como site comum no GitHub Pages: https://pedropaulodfr.github.io/uphill-rush/ (publicado a partir da raiz da branch `main`; cada push atualiza o site em 1 ou 2 minutos). O jogo também é publicado como *Artifact* no claude.ai, que aceita a página assim.
 
 A única dependência externa é a fonte do Google Fonts (Lilita One e Nunito). Sem internet, o jogo usa fontes de reserva.
 
@@ -292,6 +292,5 @@ Verificações recomendadas depois de mexer na física: moto parada não escorre
 - Não existe uma referência de "hash" da nova física. Antes de mexer nela, registre uma simulação fixa (sequência de teclas → posições) para conferir depois.
 - Os obstáculos foram calibrados só com pilotos automáticos; vale jogar e ajustar `gapW`, `roofGap`, `roofBump` e `whoopH` pela sensação real.
 - O tempo limite foi apertado para 60–110 s, cerca de 3 vezes o tempo de um piloto automático cauteloso (14–34 s). Cada queda custa ~1,7 s e a volta ao último checkpoint; se ficar difícil demais para pessoas, aumente `time` em `LEVELS`.
-- GitHub Pages ainda não foi ativado; para isso, ajuste o `index.html` como descrito na seção 2.
 - O desenho do chassi segue a linha entre as rodas, não o ângulo real do chassi da física; a diferença é pequena, mas um refino possível é desenhar o chassi pelo referencial `Cr → Cf`.
 - Sem efeitos sonoros de aterrissagem e suspensão; o áudio é todo sintetizado.
