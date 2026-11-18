@@ -64,6 +64,41 @@
     }
   }
 
+  // Raios e brilho do sol: os raios giram devagar, então a figura é refeita só 5 vezes por segundo
+  const sunCache = new Map();
+  function sunSprites(art, sun, clock) {
+    let sk = sunCache.get(art);
+    if (!sk) {
+      const glow = canvas(460, 460), gx = glow.getContext('2d');
+      const sg = gx.createRadialGradient(230, 230, 0, 230, 230, 230);
+      sg.addColorStop(0, `rgba(${sun},1)`); sg.addColorStop(0.1, `rgba(${sun},0.85)`);
+      sg.addColorStop(0.3, `rgba(${sun},0.28)`); sg.addColorStop(1, `rgba(${sun},0)`);
+      gx.fillStyle = sg; gx.beginPath(); gx.arc(230, 230, 230, 0, TAU); gx.fill();
+      gx.fillStyle = art.sunCore || '#ffffff'; gx.beginPath(); gx.arc(230, 230, 24, 0, TAU); gx.fill();
+      sk = { glow, rays: canvas(W, H), at: -1 };
+      sunCache.set(art, sk);
+    }
+    if (clock - sk.at > 0.2 || clock < sk.at) {
+      sk.at = clock;
+      const rx = sk.rays.getContext('2d');
+      rx.clearRect(0, 0, W, H);
+      rx.globalCompositeOperation = 'lighter';
+      rx.translate(712, 78);
+      rx.rotate(clock * 0.015);
+      for (let i = 0; i < 14; i++) {
+        rx.rotate(TAU / 14);
+        const len = 520 + hash(i) * 260, wd = 24 + hash(i + 4) * 40;
+        const rg = rx.createLinearGradient(0, 0, len, 0);
+        rg.addColorStop(0, `rgba(${sun},${0.07 + 0.03 * Math.sin(clock * 0.6 + i)})`);
+        rg.addColorStop(1, `rgba(${sun},0)`);
+        rx.fillStyle = rg;
+        rx.beginPath(); rx.moveTo(0, 0); rx.lineTo(len, -wd); rx.lineTo(len, wd); rx.closePath(); rx.fill();
+      }
+      rx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    return sk;
+  }
+
   // ---------- Camada 1: céu, sol e nuvens ----------
   Sc.drawSky = (ctx, A, cam, clock) => {
     initStatic();
@@ -75,25 +110,11 @@
     const sx = 712, sy = 78 + vOff(cam, 0.02);
     if (art.night) drawNightSky(ctx, art, sx, sy, clock);
     else {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.translate(sx, sy);
-    ctx.rotate(clock * 0.015);
-    for (let i = 0; i < 14; i++) {
-      ctx.rotate(TAU / 14);
-      const len = 520 + hash(i) * 260, wd = 24 + hash(i + 4) * 40;
-      const rg = ctx.createLinearGradient(0, 0, len, 0);
-      rg.addColorStop(0, `rgba(${sun},${0.07 + 0.03 * Math.sin(clock * 0.6 + i)})`);
-      rg.addColorStop(1, `rgba(${sun},0)`);
-      ctx.fillStyle = rg;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, -wd); ctx.lineTo(len, wd); ctx.closePath(); ctx.fill();
-    }
-    ctx.restore();
-    const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 230);
-    sg.addColorStop(0, `rgba(${sun},1)`); sg.addColorStop(0.1, `rgba(${sun},0.85)`);
-    sg.addColorStop(0.3, `rgba(${sun},0.28)`); sg.addColorStop(1, `rgba(${sun},0)`);
-    ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, 230, 0, TAU); ctx.fill();
-    ctx.fillStyle = art.sunCore || '#ffffff'; ctx.beginPath(); ctx.arc(sx, sy, 24, 0, TAU); ctx.fill();
+      const sk = sunSprites(art, sun, clock);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.drawImage(sk.rays, 0, vOff(cam, 0.02));
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(sk.glow, sx - 230, sy - 230);
     }
 
     const cl = A.clouds, span = W + 760;
@@ -147,6 +168,7 @@
 
   // ---------- Camada 6: terreno ----------
   const patterns = new WeakMap();
+  const terrainCols = new WeakMap();
   Sc.drawTerrain = (ctx, T, A, cam) => {
     const art = A.art, ys = T.ys, SEG = T.SEG;
     const i0 = Math.max(0, Math.floor(cam.x / SEG) - 2);
@@ -169,11 +191,16 @@
     ctx.clip();
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     // camadas de solo: escurecem com a profundidade
-    surf(300); ctx.strokeStyle = css(art.dirt.deep, 0.55); ctx.lineWidth = 420; ctx.stroke();
-    surf(130); ctx.strokeStyle = css(art.dirt.dark, 0.35); ctx.lineWidth = 90; ctx.stroke();
-    surf(70); ctx.strokeStyle = css(art.dirt.light, 0.12); ctx.lineWidth = 18; ctx.stroke();
-    surf(95); ctx.strokeStyle = css(art.dirt.dark, 0.25); ctx.lineWidth = 6; ctx.stroke();
-    surf(16); ctx.strokeStyle = css(art.dirt.top, 0.75); ctx.lineWidth = 26; ctx.stroke();
+    let tc = terrainCols.get(art);
+    if (!tc) {
+      tc = [css(art.dirt.deep, 0.55), css(art.dirt.dark, 0.35), css(art.dirt.light, 0.12), css(art.dirt.dark, 0.25), css(art.dirt.top, 0.75)];
+      terrainCols.set(art, tc);
+    }
+    surf(300); ctx.strokeStyle = tc[0]; ctx.lineWidth = 420; ctx.stroke();
+    surf(130); ctx.strokeStyle = tc[1]; ctx.lineWidth = 90; ctx.stroke();
+    surf(70); ctx.strokeStyle = tc[2]; ctx.lineWidth = 18; ctx.stroke();
+    surf(95); ctx.strokeStyle = tc[3]; ctx.lineWidth = 6; ctx.stroke();
+    surf(16); ctx.strokeStyle = tc[4]; ctx.lineWidth = 26; ctx.stroke();
 
     // luz conforme a inclinação de cada trecho (sol à direita)
     for (let i = i0; i < i1; i++) {
@@ -504,6 +531,7 @@
     if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
   }
 
+  let starGrad = null, turboGrad = null, capGrad = null;
   Sc.drawItems = (ctx, T, clock, cam) => {
     initStatic();
     for (const s of T.stars) {
@@ -517,10 +545,12 @@
       ctx.save();
       ctx.translate(s.x, y);
       ctx.scale(0.3 + 0.7 * Math.abs(spin), 1);
-      const g = ctx.createRadialGradient(-3, -4, 1, 0, 0, 17);
-      g.addColorStop(0, '#fffbd0'); g.addColorStop(0.45, '#ffcf2e'); g.addColorStop(1, '#e88a00');
+      if (!starGrad) {
+        starGrad = ctx.createRadialGradient(-3, -4, 1, 0, 0, 17);
+        starGrad.addColorStop(0, '#fffbd0'); starGrad.addColorStop(0.45, '#ffcf2e'); starGrad.addColorStop(1, '#e88a00');
+      }
       starPath(ctx, 16, 7);
-      ctx.fillStyle = g; ctx.fill();
+      ctx.fillStyle = starGrad; ctx.fill();
       ctx.lineWidth = 2; ctx.strokeStyle = '#a65a00'; ctx.stroke();
       ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1;
       for (let i = 0; i < 5; i++) {
@@ -549,13 +579,15 @@
       ctx.save();
       ctx.translate(tb.x, y);
       ctx.rotate(Math.sin(clock * 2 + tb.ph) * 0.15);
-      const g = ctx.createLinearGradient(-9, 0, 9, 0);
-      g.addColorStop(0, '#0b4f9c'); g.addColorStop(0.45, '#39b6ff'); g.addColorStop(0.7, '#9fe3ff'); g.addColorStop(1, '#126bc0');
-      rr(ctx, -9, -13, 18, 26, 6); ctx.fillStyle = g; ctx.fill();
+      if (!turboGrad) {
+        turboGrad = ctx.createLinearGradient(-9, 0, 9, 0);
+        turboGrad.addColorStop(0, '#0b4f9c'); turboGrad.addColorStop(0.45, '#39b6ff'); turboGrad.addColorStop(0.7, '#9fe3ff'); turboGrad.addColorStop(1, '#126bc0');
+        capGrad = ctx.createLinearGradient(-6, 0, 6, 0);
+        capGrad.addColorStop(0, '#7f8892'); capGrad.addColorStop(0.5, '#f1f4f7'); capGrad.addColorStop(1, '#7f8892');
+      }
+      rr(ctx, -9, -13, 18, 26, 6); ctx.fillStyle = turboGrad; ctx.fill();
       ctx.lineWidth = 1.5; ctx.strokeStyle = '#06315f'; ctx.stroke();
-      const cg = ctx.createLinearGradient(-6, 0, 6, 0);
-      cg.addColorStop(0, '#7f8892'); cg.addColorStop(0.5, '#f1f4f7'); cg.addColorStop(1, '#7f8892');
-      rr(ctx, -6, -17, 12, 5, 2); ctx.fillStyle = cg; ctx.fill();
+      rr(ctx, -6, -17, 12, 5, 2); ctx.fillStyle = capGrad; ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.beginPath(); ctx.moveTo(2, -9); ctx.lineTo(-5, 2); ctx.lineTo(0, 2); ctx.lineTo(-2, 10); ctx.lineTo(5, -2); ctx.lineTo(0, -2); ctx.closePath(); ctx.fill();
       ctx.restore();
@@ -754,7 +786,7 @@
     const t = performance.now() / 1000;
     if (!front) {
       const dx = lastCam ? cam.x - lastCam.x : 0, dy = lastCam ? cam.y - lastCam.y : 0;
-      lastCam = { x: cam.x, y: cam.y };
+      if (lastCam) { lastCam.x = cam.x; lastCam.y = cam.y; } else lastCam = { x: cam.x, y: cam.y };
       for (const f of flakes) {
         let vx, vy;
         if (type === 'snow') { vx = -18 + Math.sin(t * f.sp + f.ph) * 22; vy = 46 * f.sp; }

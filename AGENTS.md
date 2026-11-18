@@ -300,6 +300,7 @@ Pool fixo de 420 partículas, sem criar objetos durante o jogo: poeira, terra e 
 10. **Mais fases e quadriciclo**: fases 7 a 10 com quatro ambientes novos derivados dos existentes, e o quadriciclo como segundo veículo (escolha no menu, física própria em `VEHICLES.quad`, desenho próprio).
 11. **Mortais possíveis**: rampas de manobra em todas as fases (placa azul com seta em círculo), giro no ar mais rápido (`airTorque` 12,5→18, `maxSpin` 7,5→10), freio de giro ao soltar a inclinação, tolerância maior para contar o mortal e câmera que mostra o pouso.
 12. **Pulo e capacete de vida**: botão de pulo (Z) para pegar estrelas altas, itens `lifeups` (capacete verde) em algumas fases, e regras de colocação de itens perto de obstáculos (ver "Itens").
+13. **Desempenho**: sol e raios do céu viram figuras prontas (raios refeitos 5x/s), gradientes e cores dos itens/terreno criados uma vez, canvas opaco (`alpha:false`), no máximo 4 passos de física por quadro e resolução do canvas que baixa sozinha (`adaptScale`) se o jogo ficar lento.
 
 ## 10. Como testar
 

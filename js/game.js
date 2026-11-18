@@ -14,15 +14,15 @@
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const lerp = (a, b, t) => a + (b - a) * t;
 
-  const cv = $('game'), ctx = cv.getContext('2d');
+  const cv = $('game'), ctx = cv.getContext('2d', { alpha: false });
   const mm = $('minimap'), mctx = mm.getContext('2d');
 
   // A lógica continua em 960x540; o canvas só ganha mais pixels para ficar nítido em telas grandes
-  let renderScale = 1;
+  let renderScale = 1, scaleCap = 2;
   function fit() {
     const s = Math.min(innerWidth / W, innerHeight / H);
     $('stage').style.transform = `translate(-50%, -50%) scale(${s})`;
-    const k = clamp(s * (window.devicePixelRatio || 1), 1, 2);
+    const k = clamp(s * (window.devicePixelRatio || 1), 1, scaleCap);
     if (Math.abs(k - renderScale) > 0.01 || cv.width !== Math.round(W * k)) {
       renderScale = k;
       cv.width = Math.round(W * k);
@@ -1130,13 +1130,28 @@
   function advance(dt) {
     if (game.state === 'play' || game.state === 'crash') {
       acc += dt;
-      while (acc >= DT) { physics(DT); acc -= DT; }
+      // no máximo 4 passos por quadro: se o computador engasgar, o jogo não tenta recuperar tudo de uma vez
+      let n = 0;
+      while (acc >= DT && n < 4) { physics(DT); acc -= DT; n++; }
+      if (acc > DT * 2) acc = DT * 2;
       logic(dt);
     } else {
       acc = 0;
     }
   }
+  // Se os quadros demoram muito por vários segundos, baixa a resolução do canvas (nunca sobe de volta)
+  let slowT = 0;
+  function adaptScale(raw) {
+    if (game.state !== 'play' || raw > 0.25) { slowT = 0; return; }
+    slowT = raw > 0.024 ? slowT + raw : Math.max(0, slowT - raw * 2);
+    if (slowT > 1.5 && scaleCap > 1) {
+      slowT = 0;
+      scaleCap = Math.max(1, Math.min(scaleCap, renderScale) - 0.25);
+      fit();
+    }
+  }
   function frame(now) {
+    adaptScale((now - last) / 1000);
     const dt = Math.min(0.05, (now - last) / 1000);
     frameDt = dt;
     last = now;
