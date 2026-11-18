@@ -19,16 +19,18 @@ Este documento resume tudo o que já foi feito no jogo, como o código está org
 | ← / A | Inclinar para trás (empinar) |
 | → / D | Inclinar para frente |
 | Espaço (ou Shift esquerdo) | Turbo |
+| Z (ou X, C) | Pular (intervalo de 1,1 s entre pulos) |
 | P / Esc | Pausar |
 | M | Som liga/desliga |
 
-Em telas de toque aparecem botões na tela (◀ ▶ T ▼ ▲).
+Em telas de toque aparecem botões na tela (◀ ▶ ⤒ T ▼ ▲).
 
 ### Regras
 
 - 10 fases, 4 vidas, tempo limite por fase.
 - Dois veículos à escolha no menu: **moto** (rápida e ágil no ar) e **quadriciclo** (estável, com mais tração e menos velocidade final).
 - Estrelas (+100), cápsulas de turbo (+50 e +1 barra), checkpoints (+200) em 33% e 66% da pista.
+- **Capacete verde** (fases 4, 6, 8 e 10; 2 na fase 10): devolve uma vida. Com as 4 vidas cheias a conta fica em 4 e o jogador ganha +150 pontos, e o capacete some do mesmo jeito.
 - Mortais no ar: +500 × (número de voltas)². Saltos acima de 0,75 s também pontuam.
 - Ao terminar a fase: bônus de tempo (10 por segundo restante) e +1000 se pegar todas as estrelas.
 - Queda: perde uma vida e renasce no trecho mais plano até 320 px antes do último checkpoint.
@@ -97,7 +99,7 @@ Implementação própria, sem biblioteca, com partículas e restrições resolvi
 ```js
 Serra.Physics.createBike(x, T, cfg)     // cria o veículo apoiado no terreno T na posição x (cfg padrão = PHYS)
 Serra.Physics.VEHICLES                  // { moto: PHYS, quad: PHYS com ajustes } — cfg de cada veículo
-Serra.Physics.step(bike, input, dt, T)  // input = { throttle, brake, lean (-1..1), turbo }
+Serra.Physics.step(bike, input, dt, T)  // input = { throttle, brake, lean (-1..1), turbo, jump }
 Serra.Physics.crashCheck(bike)          // 'cabeça' | 'corpo' | 'impacto' | 'pouso' | null
 Serra.Physics.view(bike, alpha)         // vista interpolada para desenho/câmera
 Serra.Physics.nearest(T, x, y, r)       // distância assinada ao terreno + normal (objeto reaproveitado!)
@@ -121,11 +123,23 @@ Campos da moto usados pelo resto do jogo: `R`, `F`, `H` (com `x, y, px, py`, sen
 | Motor | `accel`, `maxSpeed`, `turboAccel`, `turboMaxSpeed`, `reverseAccel`, `reverseMaxSpeed`, `airTurboAccel` | 1250, 1150, 1600, 1650, 320, 240, 140 |
 | Chão e ar | `brakeDecel`, `tireGrip`, `rollingResistance`, `airDrag`, `bodyFriction`, `restitution`, `bodyRestitution` | 1700, 1.25, 0.018, 0.00016, 0.55, 0.04, 0.12 |
 | Controle | `airTorque`, `groundTorque`, `maxSpin`, `airDamping`, `spinFree`, `spinBrake` | 18, 8.5, 10, 0.65, 2.5 rad/s, 4 |
+| Pulo | `jump.speed`, `jump.cooldown` | 640 px/s (sobe ~130 px), 1,1 s |
 | Queda | `headRadius`, `riderRadius`, `hardLanding`, `badLandingAngle`, `badLandingSpeed` | 10, 9, 1900, 1.1 rad, 520 |
 
 Comportamento medido com esses valores (terreno plano): 0→300 px/s em 0,28 s, 0→600 em 0,72 s, 0→900 em 1,8 s; velocidade máxima ≈ 984 px/s; frenagem de 984 a 0 em 0,63 s e 301 px; suspensão assenta ≈ 37% do curso em repouso. Quedas de 600 e 1200 px são absorvidas; de 2000 px derrubam.
 
 **Determinismo**: com as mesmas teclas, o resultado é idêntico em qualquer FPS (testado em 30, 60, 144, 240 e FPS irregular). A única aleatoriedade (`Math.random`) está nas partículas e no balanço do piloto em queda, que não afetam a física.
+
+### Pulo
+
+`input.jump` aplica um impulso vertical (`PHYS.jump.speed`) em todas as partículas, só se alguma roda estiver no chão e o intervalo (`bike.jumpCd`) tiver acabado; `bike.jumped` fica verdadeiro no passo em que isso acontece. A moto e o quadriciclo usam o mesmo impulso: sobem ~130 px (a cabeça, ~134 px) e ficam ~0,8 s no ar, o que alcança a estrela mais alta (168 px acima do chão).
+
+Regras que ficam em `game.js`:
+
+- **Zonas sem pulo** (`T.noJump`, conferidas em `canJump`): da rampa de embalo até o pouso de cada fenda (senão qualquer velocidade atravessaria a fenda) e dentro dos túneis (só causaria batida no teto).
+- **Voo de pulo não pontua**: `bike.jumpFlight` impede os pontos de "Salto" e de mortal (`landed()`), para ninguém ganhar pontos só pulando.
+- Efeitos: som, poeira nas duas rodas e agachada da suspensão (`jumpFX`).
+- Teclas Z, X e C (`KEYMAP`, `keys.jump`) e o botão de toque `#tJump`.
 
 ### Quadriciclo (`VEHICLES.quad`)
 
@@ -177,6 +191,16 @@ Fases 7 a 10 (mesmos ajustes de terreno da fase 6, mais longas e com mais obstá
 Nem todos os obstáculos pedidos cabem: quando falta espaço entre os checkpoints, o excedente é descartado (ex.: a fase 9 fica com 10 de 13).
 
 Cada fase guarda `stars`, `turbos`, `cps` (checkpoints), `decor` (vegetação), `haz` (obstáculos), `finishX` e as referências `groundY` e `roofY`.
+
+### Itens (`buildLevel` em `game.js`)
+
+`stars`, `turbos` e `lifeups` (capacete verde) são gerados em `buildLevel`. O capacete usa varredura própria da pista (sem consumir `r()`, para não mudar o resto) e pega o ponto livre mais perto do centro de cada faixa, longe de obstáculos, checkpoints e outros itens. Ele fica na altura do chão, para qualquer jogador alcançar. Fases com capacete: campo `lifeups` em `LEVELS` (4: 1, 6: 1, 8: 1, 10: 2).
+
+Regras de altura das estrelas, para todas ficarem ao alcance:
+
+- Longe de obstáculos, uma estrela pode ficar até 168 px acima do chão (precisa do pulo).
+- Perto de obstáculos (de 250 px antes até 150 px depois; nas fendas, da rampa de embalo ao pouso, que é a zona sem pulo) elas ficam a no máximo 90 px do chão: a cabeça alcança sem pular.
+- Estrelas sobre a rampa de manobra são movidas para o trecho livre mais próximo (`clearOfTricks`), porque o voo passa por cima delas.
 
 ### Obstáculos (`addObstacles` em `game.js`)
 
@@ -275,6 +299,7 @@ Pool fixo de 420 partículas, sem criar objetos durante o jogo: poeira, terra e 
 9. **Tempo apertado**: o limite das fases caiu de 120–205 s para 60–110 s.
 10. **Mais fases e quadriciclo**: fases 7 a 10 com quatro ambientes novos derivados dos existentes, e o quadriciclo como segundo veículo (escolha no menu, física própria em `VEHICLES.quad`, desenho próprio).
 11. **Mortais possíveis**: rampas de manobra em todas as fases (placa azul com seta em círculo), giro no ar mais rápido (`airTorque` 12,5→18, `maxSpin` 7,5→10), freio de giro ao soltar a inclinação, tolerância maior para contar o mortal e câmera que mostra o pouso.
+12. **Pulo e capacete de vida**: botão de pulo (Z) para pegar estrelas altas, itens `lifeups` (capacete verde) em algumas fases, e regras de colocação de itens perto de obstáculos (ver "Itens").
 
 ## 10. Como testar
 
@@ -319,6 +344,7 @@ Verificações recomendadas depois de mexer na física: moto parada não escorre
 
 - **Não há teste com jogador humano**: todos os testes foram automáticos. A sensação de aceleração, suspensão e controle no ar deve ser avaliada jogando e ajustada em `PHYS`.
 - Não existe uma referência de "hash" da nova física. Antes de mexer nela, registre uma simulação fixa (sequência de teclas → posições) para conferir depois.
+- O pulo e a posição das estrelas foram testados só com pilotos automáticos (todas as 38 estrelas altas são pegas com o pulo, nos dois veículos); vale jogar para sentir a altura (`jump.speed`) e o intervalo (`jump.cooldown`).
 - Os obstáculos foram calibrados só com pilotos automáticos; vale jogar e ajustar `gapW`, `roofGap`, `roofBump` e `whoopH` pela sensação real.
 - O tempo limite foi apertado para 60–110 s, cerca de 3 vezes o tempo de um piloto automático cauteloso (14–34 s). Cada queda custa ~1,7 s e a volta ao último checkpoint; se ficar difícil demais para pessoas, aumente `time` em `LEVELS`.
 - O desenho do chassi segue a linha entre as rodas, não o ângulo real do chassi da física; a diferença é pequena, mas um refino possível é desenhar o chassi pelo referencial `Cr → Cf`.

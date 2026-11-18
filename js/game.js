@@ -70,19 +70,19 @@
       obstacles: OBST({ trick: 1, log: 2, whoops: 1, gap: 2, roof: 1 }, { gapW: [140, 180], whoopH: 22, roofBump: 33 }) },
     { name: 'Cânion Seco', theme: 'canyon', seed: 4242, length: 12600, diff: 0.8, time: 80, stars: 8, turbos: 3,
       obstacles: OBST({ trick: 1, log: 1, whoops: 2, gap: 2, roof: 2 }, { gapW: [160, 200], whoopH: 22, roofBump: 34 }) },
-    { name: 'Pico Nevado', theme: 'snow', seed: 9001, length: 14600, diff: 1.05, time: 100, stars: 8, turbos: 4, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.55, hillScale: 0.75,
+    { name: 'Pico Nevado', lifeups: 1, theme: 'snow', seed: 9001, length: 14600, diff: 1.05, time: 100, stars: 8, turbos: 4, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.55, hillScale: 0.75,
       obstacles: OBST({ trick: 1, log: 2, whoops: 2, gap: 2, roof: 2 }, { gapW: [170, 210], whoopH: 24, whoopN: 6, roofBump: 34, roofWhoops: 8 }) },
     { name: 'Vale Vulcânico', theme: 'volcano', seed: 6661, length: 15100, diff: 1.12, time: 105, stars: 10, turbos: 4, rampScale: 0.78, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.75,
       obstacles: OBST({ trick: 1, log: 2, whoops: 2, gap: 3, roof: 2 }, { gapW: [170, 210], logR: 20, whoopH: 24, whoopN: 6, roofBump: 35, roofWhoops: 9 }) },
-    { name: 'Serra ao Luar', theme: 'night', seed: 7777, length: 16100, diff: 1.18, time: 120, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
+    { name: 'Serra ao Luar', lifeups: 1, theme: 'night', seed: 7777, length: 16100, diff: 1.18, time: 120, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
       obstacles: OBST({ trick: 1, log: 2, whoops: 2, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
     { name: 'Dunas Douradas', theme: 'dunes', seed: 3131, length: 16600, diff: 1.15, time: 125, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.45, hillScale: 0.9,
       obstacles: OBST({ trick: 1, log: 2, whoops: 3, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
-    { name: 'Pântano da Névoa', theme: 'swamp', seed: 5150, length: 19700, diff: 1.2, time: 140, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.45, hillScale: 0.9,
+    { name: 'Pântano da Névoa', lifeups: 1, theme: 'swamp', seed: 5150, length: 19700, diff: 1.2, time: 140, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.45, hillScale: 0.9,
       obstacles: OBST({ trick: 2, log: 3, whoops: 2, gap: 4, roof: 3 }, { gapW: [180, 225], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
     { name: 'Geleira Azul', theme: 'glacier', seed: 8282, length: 20200, diff: 1.22, time: 145, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.45, hillScale: 0.85,
       obstacles: OBST({ trick: 2, log: 2, whoops: 3, gap: 4, roof: 4 }, { gapW: [170, 205], logR: 20, whoopH: 23, whoopN: 6, roofBump: 37, roofWhoops: 11 }) },
-    { name: 'Serra do Pôr do Sol', theme: 'sunset', seed: 9999, length: 21200, diff: 1.25, time: 155, stars: 12, turbos: 6, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
+    { name: 'Serra do Pôr do Sol', lifeups: 2, theme: 'sunset', seed: 9999, length: 21200, diff: 1.25, time: 155, stars: 12, turbos: 6, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
       obstacles: OBST({ trick: 2, log: 3, whoops: 3, gap: 4, roof: 4 }, { gapW: [190, 235], logR: 21, whoopH: 26, whoopN: 7, roofBump: 38, roofWhoops: 12 }) },
   ];
 
@@ -135,25 +135,66 @@
     lvl.cps = cpFrac.map((f) => ({ x: Math.round(L.length * f), hit: false }));
 
     // itens não podem ficar no fundo de uma fenda nem dentro da rocha de um túnel
+    // O pulo fica desligado perto das fendas e as rampas de manobra têm voo próprio; por isso, perto
+    // de qualquer obstáculo os itens ficam a no máximo 90 px do chão (a cabeça alcança sem pular)
     const itemY = (x, y) => {
       for (const h of haz) {
+        const over = h.type === 'gap' && x > h.px0 - 20 && x < h.px1 + 20;
+        const a = h.type === 'gap' ? h.px0 - 600 : h.x0 - 250, z = h.type === 'gap' ? h.x1 + 100 : h.x1 + 150;
+        if (!over && x > a && x < z) y = Math.max(y, groundY(x) - 90);
         if (h.type === 'gap' && x > h.x0 - 20 && x < h.x1 + 20) y = Math.min(y, h.rim - 70);
         if (h.type === 'roof' && x > h.x0 - 30 && x < h.x1 + 30) y = Math.max(y, roofY(h, clamp(x, h.x0, h.x1)) + 30);
       }
       return y;
     };
+    // itens não ficam sobre a rampa de manobra (o voo passa por cima): vão para o trecho livre mais próximo
+    const clearOfTricks = (x) => {
+      for (const h of haz) {
+        if (h.type !== 'trick' || x < h.x0 - 120 || x > h.x1 + 100) continue;
+        for (let d = 0; d < 1600; d += 40) {
+          for (const cand of [h.x0 - 140 - d, h.x1 + 120 + d]) {
+            if (cand > 700 && cand < L.length - 700 && !haz.some((o) => cand > o.x0 - 250 && cand < o.x1 + 150)) return cand;
+          }
+        }
+      }
+      return x;
+    };
     lvl.stars = [];
     const span = L.length - 1500;
     for (let i = 0; i < L.stars; i++) {
-      const x = 750 + (i + 0.5) * (span / L.stars) + (r() - 0.5) * 220;
+      const x = clearOfTricks(750 + (i + 0.5) * (span / L.stars) + (r() - 0.5) * 220);
       const high = r() < 0.45;
       lvl.stars.push({ x, y: itemY(x, groundY(x) - 38 - (high ? 70 + r() * 60 : 0)), got: false, ph: r() * 6 });
     }
     lvl.turbos = [];
     for (let i = 0; i < L.turbos; i++) {
-      const x = 1000 + (i + 0.5) * ((L.length - 1800) / L.turbos) + (r() - 0.5) * 300;
+      const x = clearOfTricks(1000 + (i + 0.5) * ((L.length - 1800) / L.turbos) + (r() - 0.5) * 300);
       lvl.turbos.push({ x, y: itemY(x, groundY(x) - 34), got: false, ph: r() * 6 });
     }
+
+    // capacetes de vida extra: não mudam a pista nem os outros itens (sem consumir r())
+    lvl.lifeups = [];
+    if (L.lifeups) {
+      const lo = 2200, hi = L.length - 1800;
+      const free = [];
+      for (let x = lo; x < hi; x += 40) {
+        if (haz.some((h) => x > h.x0 - 260 && x < h.x1 + 160)) continue;
+        if (lvl.cps.some((c) => Math.abs(c.x - x) < 300)) continue;
+        if ([...lvl.stars, ...lvl.turbos].some((it) => Math.abs(it.x - x) < 160)) continue;
+        free.push(x);
+      }
+      for (let i = 0; i < L.lifeups && free.length; i++) {
+        const target = lo + ((i + 0.5) / L.lifeups) * (hi - lo);
+        let best = 0;
+        for (let k = 1; k < free.length; k++) if (Math.abs(free[k] - target) < Math.abs(free[best] - target)) best = k;
+        const x = free.splice(best, 1)[0];
+        lvl.lifeups.push({ x, y: groundY(x) - 38, got: false, ph: i * 2.3 });
+      }
+    }
+
+    // Pulo desligado nas fendas (senão qualquer velocidade bastaria para atravessá-las) e nos túneis
+    lvl.noJump = haz.filter((h) => h.type === 'gap' || h.type === 'roof')
+      .map((h) => (h.type === 'gap' ? [h.px0 - 560, h.x1 + 60] : [h.x0 - 200, h.x1 + 20]));
 
     lvl.decor = [];
     for (let x = 120; x < L.length + 500; x += 90 + r() * 240) {
@@ -357,12 +398,17 @@
       brake: ctrl && keys.down ? 1 : 0,
       lean: ctrl ? (keys.left ? 1 : 0) - (keys.right ? 1 : 0) : 0,
       turbo: ctrl && keys.turbo && game.turbo > 0,
+      jump: ctrl && keys.jump && canJump(b),
     };
     if (input.turbo) game.turbo = Math.max(0, game.turbo - dt * 0.6);
     game.turboOn = input.turbo;
     b.lean = lerp(b.lean, input.lean, 0.08);
 
     Serra.Physics.step(b, input, dt, T);
+    if (b.jumped) {
+      b.jumpFlight = true; // o voo que começa com pulo não pontua (evita pular só para somar pontos)
+      jumpFX(b);
+    }
 
     // Rotação acumulada no ar (para contar mortais)
     const a = Math.atan2(b.F.y - b.R.y, b.F.x - b.R.x);
@@ -388,9 +434,15 @@
     if (b.gR && input.throttle && Math.random() < (input.turbo ? 0.6 : 0.3)) dust(b.R.x - 10, b.R.y + WHEEL_R - 4, input.turbo);
   }
 
+  function canJump(b) {
+    const cx = (b.R.x + b.F.x) / 2;
+    return !T.noJump.some((z) => cx > z[0] && cx < z[1]);
+  }
+
   function landed() {
     const b = bike;
     landingFX(b);
+    if (b.jumpFlight) { b.jumpFlight = false; return; }
     // conta a volta mesmo se faltarem ~50° (o jogador precisa endireitar antes do pouso)
     const flips = Math.floor((Math.abs(b.airRot) + 0.9) / (Math.PI * 2));
     if (flips > 0) {
@@ -507,7 +559,7 @@
       <div class="sub">Fase ${game.level + 1} de ${LEVELS.length}</div>
       <h2>${L.name}</h2>
       <p>Chegue à bandeira quadriculada em até <b>${fmtTime(L.time)}</b>.<br>
-      Pegue as <b>${L.stars} estrelas</b> e as cápsulas azuis de turbo pelo caminho.</p>
+      Pegue as <b>${L.stars} estrelas</b> e as cápsulas azuis de turbo pelo caminho.${L.lifeups ? '<br>Procure o <b>capacete verde</b>: ele devolve uma vida.' : ''}</p>
       ${obstacleHint(T.haz)}
     `, [{ label: 'Acelerar!', fn: () => { hideCard(); setState('play'); } }]);
   }
@@ -615,7 +667,9 @@
         <kbd>← / A</kbd><span>Inclinar para trás (empinar)</span>
         <kbd>→ / D</kbd><span>Inclinar para frente</span>
         <kbd>Espaço</kbd><span>Turbo</span>
-        <kbd>P</kbd><span>Pausar &nbsp;·&nbsp; <kbd>M</kbd> Som</span>
+        <kbd>Z</kbd><span>Pular (para pegar estrelas altas)</span>
+        <kbd>P</kbd><span>Pausar</span>
+        <kbd>M</kbd><span>Som liga/desliga</span>
       </div>
       <p>Faça mortais no ar para ganhar pontos extras. Não deixe o capacete bater no chão.</p>
       ${game.best ? `<p class="hint">Recorde neste navegador: ${game.best}</p>` : ''}
@@ -695,6 +749,21 @@
         spark(tb.x, tb.y, '#38c6ff');
       }
     }
+    for (const lu of T.lifeups) {
+      if (lu.got) continue;
+      if (Math.hypot(lu.x - cx, lu.y - cy) < 44 || Math.hypot(lu.x - b.H.x, lu.y - b.H.y) < 28) {
+        lu.got = true;
+        if (game.lives < START_LIVES) {
+          game.lives++;
+          toast('Vida extra!', 'green');
+        } else {
+          addScore(150);
+          toast('Vidas cheias +150', 'green');
+        }
+        sfx([523, 659, 784, 1046, 1318], 0.07, 'triangle', 0.07);
+        spark(lu.x, lu.y, '#6ed94b');
+      }
+    }
     for (const cp of T.cps) {
       if (!cp.hit && cx > cp.x) {
         cp.hit = true; game.lastCP = cp.x; addScore(200);
@@ -715,6 +784,14 @@
   function spark(x, y, hexColor) {
     const n = parseInt(hexColor.slice(1), 16);
     Serra.Particles.burst(x, y, [(n >> 16) & 255, (n >> 8) & 255, n & 255], 14);
+  }
+  function jumpFX(b) {
+    sfx([330, 494, 660], 0.05, 'square', 0.04);
+    Serra.BikeRenderer.onLand(5);
+    if (assets) {
+      Serra.Particles.land(b.R.x, groundY(b.R.x), assets.art, 6);
+      Serra.Particles.land(b.F.x, groundY(b.F.x), assets.art, 6);
+    }
   }
   function landingFX(b) {
     const impact = Math.max(0, b.airVy || 0);
@@ -948,10 +1025,11 @@
   function hideCard() { $('overlay').classList.remove('show'); cardButtons = []; }
 
   // ---------- Entrada ----------
-  const keys = { up: false, down: false, left: false, right: false, turbo: false };
+  const keys = { up: false, down: false, left: false, right: false, turbo: false, jump: false };
   const KEYMAP = {
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Space: 'turbo', ShiftLeft: 'turbo',
+    KeyZ: 'jump', KeyX: 'jump', KeyC: 'jump',
   };
   addEventListener('keydown', (e) => {
     initAudio();

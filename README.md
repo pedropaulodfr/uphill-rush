@@ -15,6 +15,7 @@ https://pedropaulodfr.github.io/uphill-rush/
 | ← / A | Inclinar para trás (empinar) |
 | → / D | Inclinar para frente |
 | Espaço | Turbo |
+| Z | Pular (para pegar estrelas altas) |
 | P / Esc | Pausar |
 | M | Som liga/desliga |
 
@@ -26,7 +27,8 @@ No celular aparecem botões de toque na tela.
 - 10 fases com ambientes diferentes: campo, floresta de outono, cânion, neve, vulcão, serra à noite, dunas, pântano, geleira e pôr do sol.
 - Obstáculos em todas as fases: fendas (chegue rápido), túneis de teto baixo (entre devagar), troncos e costelas.
 - Rampas de manobra (placa azul) com saltos longos para fazer mortais no ar e ganhar pontos extras.
-- Estrelas, cápsulas de turbo e checkpoints.
+- Estrelas, cápsulas de turbo e checkpoints. O pulo (Z) alcança as estrelas mais altas.
+- Capacetes verdes devolvem uma vida (no máximo 4).
 - 4 vidas e tempo limite por fase.
 
 ## Rodar localmente

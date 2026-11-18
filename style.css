@@ -259,6 +259,7 @@ html, body {
 }
 .toast.gold { color: var(--label); }
 .toast.blue { color: var(--turbo); }
+.toast.green { color: var(--gas); }
 @keyframes rise {
   0% { opacity: 0; transform: translateY(12px) scale(0.7); }
   15% { opacity: 1; transform: translateY(0) scale(1.12); }
@@ -525,6 +526,7 @@ html, body {
 #touch button.active { background: rgba(255, 255, 255, 0.3); }
 #touch .t-gas { background: rgba(110, 217, 75, 0.45); }
 #touch .t-turbo { background: rgba(57, 194, 255, 0.45); }
+#touch .t-jump { background: rgba(255, 210, 63, 0.45); }
 
 @media (pointer: coarse) {
   #touch { display: flex; }

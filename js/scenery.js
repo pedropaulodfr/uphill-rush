@@ -10,7 +10,7 @@
   function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
 
   // ---------- Recursos estáticos (gerados uma vez) ----------
-  let vignette = null, glowGold = null, glowBlue = null, glowWhite = null;
+  let vignette = null, glowGold = null, glowBlue = null, glowWhite = null, glowGreen = null;
   function glow(rgb) {
     const c = canvas(128, 128), x = c.getContext('2d');
     const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -28,6 +28,7 @@
     glowGold = glow('255,214,90');
     glowBlue = glow('80,200,255');
     glowWhite = glow('255,255,255');
+    glowGreen = glow('110,230,90');
   }
 
   // Deslocamento vertical do parallax: camadas distantes sobem/descem menos que a pista
@@ -557,6 +558,55 @@
       rr(ctx, -6, -17, 12, 5, 2); ctx.fillStyle = cg; ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.beginPath(); ctx.moveTo(2, -9); ctx.lineTo(-5, 2); ctx.lineTo(0, 2); ctx.lineTo(-2, 10); ctx.lineTo(5, -2); ctx.lineTo(0, -2); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    for (const lu of T.lifeups || []) {
+      if (lu.got || lu.x < cam.x - 60 || lu.x > cam.x + W + 60) continue;
+      const y = lu.y + Math.sin(clock * 2.8 + lu.ph) * 4;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.55 + 0.2 * Math.sin(clock * 4 + lu.ph);
+      ctx.drawImage(glowGreen, lu.x - 46, y - 46, 92, 92);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      ctx.save();
+      ctx.translate(lu.x, y);
+      const sc = 1 + Math.sin(clock * 5 + lu.ph) * 0.05;
+      ctx.scale(sc, sc);
+      // medalhão escuro com anel verde, para o capacete aparecer também sobre a neve
+      const pr = 27 + Math.sin(clock * 6 + lu.ph) * 2;
+      ctx.beginPath(); ctx.arc(0, -2, 24, 0, TAU);
+      ctx.fillStyle = 'rgba(12,40,18,0.82)'; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = '#6ed94b'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -2, pr, 0, TAU);
+      ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(160,255,140,0.55)'; ctx.stroke();
+      ctx.translate(-1, 0); ctx.scale(0.85, 0.85);
+      // capacete branco com faixa verde e viseira escura
+      ctx.beginPath();
+      ctx.moveTo(-14, 7);
+      ctx.bezierCurveTo(-16, -10, -6, -17, 3, -16.5);
+      ctx.bezierCurveTo(12, -16, 16, -9, 15.5, -2);
+      ctx.lineTo(19, 8);
+      ctx.quadraticCurveTo(15, 14, 7, 13.5);
+      ctx.lineTo(-8, 12.5);
+      ctx.quadraticCurveTo(-13.5, 12, -14, 7);
+      ctx.closePath();
+      const hg = ctx.createLinearGradient(8, -16, -10, 13);
+      hg.addColorStop(0, '#ffffff'); hg.addColorStop(1, '#c4cbd6');
+      ctx.fillStyle = hg; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = '#14561a'; ctx.stroke();
+      ctx.save(); ctx.clip();
+      ctx.fillStyle = '#2fbf3a';
+      ctx.beginPath(); ctx.moveTo(-18, -4); ctx.quadraticCurveTo(0, -14, 20, -8); ctx.lineTo(20, -3); ctx.quadraticCurveTo(0, -9, -18, 1); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#17191d';
+      rr(ctx, 4, -5, 13, 9, 3); ctx.fill();
+      ctx.fillStyle = '#7fe36b';
+      rr(ctx, 6, -3.5, 9, 6, 2); ctx.fill();
+      // sinal de mais
+      ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#14561a'; ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-6, -36); ctx.lineTo(-3, -36); ctx.lineTo(-3, -39); ctx.lineTo(0, -39); ctx.lineTo(0, -36); ctx.lineTo(3, -36);
+      ctx.lineTo(3, -33); ctx.lineTo(0, -33); ctx.lineTo(0, -30); ctx.lineTo(-3, -30); ctx.lineTo(-3, -33); ctx.lineTo(-6, -33);
+      ctx.closePath(); ctx.stroke(); ctx.fill();
       ctx.restore();
     }
     for (const cp of T.cps) {

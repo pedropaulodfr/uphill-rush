@@ -35,6 +35,10 @@
       reverseMaxSpeed: 240,
       airTurboAccel: 140,        // empurrão do turbo no ar, na direção da moto
     },
+    jump: {
+      speed: 640,                // impulso vertical do pulo (px/s): sobe ~135 px
+      cooldown: 1.1,             // tempo mínimo entre pulos (s)
+    },
     brakeDecel: 1700,            // desaceleração máxima de frenagem (px/s²), 40% traseira / 60% dianteira
     tireGrip: 1.25,              // atrito máximo do pneu = grip × carga na roda
     rollingResistance: 0.018,    // fração da carga na roda
@@ -197,6 +201,7 @@
       susp: 0, suspR: 0, suspF: 0, omega: 0,
       impactR: 0, impactF: 0, touchdown: false, touchdownImpact: 0, landingMismatch: 0,
       riderHit: false, headHit: false, slipping: false,
+      jumpCd: 0, jumped: false,
     };
     bike.prevSpinR = 0; bike.prevSpinF = 0;
     return bike;
@@ -280,6 +285,14 @@
     b.prevSpinR = b.spinR; b.prevSpinF = b.spinF;
     b.impactR = 0; b.impactF = 0; b.touchdown = false; b.riderHit = false; b.headHit = false; b.slipping = false;
     const wasAir = !b.gR && !b.gF;
+    // pulo: só com alguma roda no chão e fora do intervalo entre pulos
+    b.jumped = false;
+    if (b.jumpCd > 0) b.jumpCd = Math.max(0, b.jumpCd - dt);
+    if (input.jump && b.jumpCd === 0 && (b.gR || b.gF)) {
+      for (const p of parts) p.vy -= P.jump.speed;
+      b.jumpCd = P.jump.cooldown;
+      b.jumped = true;
+    }
     let anyWheel = false, groundedR = false, groundedF = false;
     const E = P.engine, C = P.control;
     const M = b.massTotal;
