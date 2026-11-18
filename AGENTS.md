@@ -88,7 +88,7 @@ Implementação própria, sem biblioteca, com partículas e restrições resolvi
 - **Motor**: a força cai linearmente até `maxSpeed`. A tração na roda traseira é limitada por `tireGrip × carga na roda`; quando passa do limite, a roda patina.
 - **Freio**: dividido 40% atrás / 60% na frente. Parado, o freio vira ré, limitada por `reverseMaxSpeed`. Descendo de ré mais rápido que o limite, o freio segura.
 - **Resistências**: rolamento (fração da carga) e arrasto do ar proporcional a v².
-- **Controle**: inclinar aplica aceleração angular pura (não empurra o centro de massa). No ar a aceleração é `airTorque`; no chão, `groundTorque` (transferência de peso). O giro gerado pelo jogador é limitado por `maxSpin`, e no ar o giro perde força com `airDamping`.
+- **Controle**: inclinar aplica aceleração angular pura (não empurra o centro de massa). No ar a aceleração é `airTorque`; no chão, `groundTorque` (transferência de peso). O giro gerado pelo jogador é limitado por `maxSpin`, e no ar o giro perde força com `airDamping`. Quando o jogador solta a inclinação no ar, o giro acima de `spinFree` freia rápido (`spinBrake`), para dar para parar um mortal na hora certa.
 - **Contatos**: todas as partículas colidem com o terreno. As rodas têm quique baixo; as partes do corpo têm atrito de Coulomb ao raspar no chão.
 - **Queda** (`crashCheck`): cabeça no chão, corpo do piloto no chão, impacto de roda acima de `hardLanding`, ou pouso com a moto mais torta que `badLandingAngle` em relação ao chão e impacto acima de `badLandingSpeed`.
 
@@ -120,7 +120,7 @@ Campos da moto usados pelo resto do jogo: `R`, `F`, `H` (com `x, y, px, py`, sen
 | Suspensão | `rearRate`, `frontRate`, `rearDamping`, `frontDamping`, `reboundRatio`, `travel`, `topOut` | 1100, 850, 66, 54, 2.2, 14, 2 |
 | Motor | `accel`, `maxSpeed`, `turboAccel`, `turboMaxSpeed`, `reverseAccel`, `reverseMaxSpeed`, `airTurboAccel` | 1250, 1150, 1600, 1650, 320, 240, 140 |
 | Chão e ar | `brakeDecel`, `tireGrip`, `rollingResistance`, `airDrag`, `bodyFriction`, `restitution`, `bodyRestitution` | 1700, 1.25, 0.018, 0.00016, 0.55, 0.04, 0.12 |
-| Controle | `airTorque`, `groundTorque`, `maxSpin`, `airDamping` | 12.5, 8.5, 7.5, 0.65 |
+| Controle | `airTorque`, `groundTorque`, `maxSpin`, `airDamping`, `spinFree`, `spinBrake` | 18, 8.5, 10, 0.65, 2.5 rad/s, 4 |
 | Queda | `headRadius`, `riderRadius`, `hardLanding`, `badLandingAngle`, `badLandingSpeed` | 10, 9, 1900, 1.1 rad, 520 |
 
 Comportamento medido com esses valores (terreno plano): 0→300 px/s em 0,28 s, 0→600 em 0,72 s, 0→900 em 1,8 s; velocidade máxima ≈ 984 px/s; frenagem de 984 a 0 em 0,63 s e 301 px; suspensão assenta ≈ 37% do curso em repouso. Quedas de 600 e 1200 px são absorvidas; de 2000 px derrubam.
@@ -129,7 +129,7 @@ Comportamento medido com esses valores (terreno plano): 0→300 px/s em 0,28 s, 
 
 ### Quadriciclo (`VEHICLES.quad`)
 
-Parte dos valores da moto (`merge(PHYS, {...})`) e muda só: massas maiores, entre-eixos de 74 px (moto: 64), piloto mais alto (cabeça em -56), suspensão mais dura e mais amortecida, `accel` 1200 / `maxSpeed` 980 / turbo 1500 e 1350, `tireGrip` 1,5, mais arrasto, giro mais lento (`airTorque` 9,5, `groundTorque` 6,5, `maxSpin` 6,2, `airDamping` 0,8) e pouso mais tolerante (`hardLanding` 2100, `badLandingAngle` 1,2). A moto continua usando `PHYS` sem nenhuma mudança. O raio das rodas é o mesmo (17), porque o jogo usa `WHEEL_R` fixo.
+Parte dos valores da moto (`merge(PHYS, {...})`) e muda só: massas maiores, entre-eixos de 74 px (moto: 64), piloto mais alto (cabeça em -56), suspensão mais dura e mais amortecida, `accel` 1200 / `maxSpeed` 980 / turbo 1500 e 1350, `tireGrip` 1,5, mais arrasto, giro mais lento (`airTorque` 14,5, `groundTorque` 6,5, `maxSpin` 8,6, `airDamping` 0,8) e pouso mais tolerante (`hardLanding` 2100, `badLandingAngle` 1,2). A moto continua usando `PHYS` sem nenhuma mudança. O raio das rodas é o mesmo (17), porque o jogo usa `WHEEL_R` fixo.
 
 Calibração: com os pilotos automáticos, o quadriciclo termina as 10 fases quando o piloto respeita os obstáculos e não termina nenhuma só com acelerador (com ou sem turbo). Com velocidade final maior, ele passava os túneis a toda; com aceleração menor, não chegava rápido às fendas.
 
@@ -165,14 +165,14 @@ Ajustes opcionais por fase (sem eles, a fase é gerada exatamente como antes):
 
 Cuidado: a sequência de chamadas a `r()` dentro de `buildLevel` define a pista inteira. Não insira nem remova chamadas a `r()` antes da geração de rampas, estrelas e turbos, senão as fases mudam. Mudar só o conteúdo de `THEMES[...].deco` não altera a pista.
 
-Fases 7 a 10 (mesmos ajustes de terreno da fase 6, mais longas e com mais obstáculos):
+Fases 7 a 10 (mesmos ajustes de terreno da fase 6, mais longas e com mais obstáculos). Todas as fases têm também rampas de manobra: 1 nas fases 1 a 7 e 2 nas fases 8 a 10; cada rampa aumentou o comprimento da fase em 2100 px e o tempo em 10 s:
 
 | Fase | Ambiente | Comprimento | Tempo | Obstáculos (tronco/costelas/fenda/túnel) |
 |---|---|---|---|---|
-| 7. Dunas Douradas | `dunes` | 14000 | 115 s | 2 / 3 / 3 / 3 |
-| 8. Pântano da Névoa | `swamp` | 14500 | 120 s | 3 / 2 / 4 / 3 |
-| 9. Geleira Azul | `glacier` | 15000 | 125 s | 2 / 3 / 4 / 4 (fendas mais estreitas, costelas mais baixas) |
-| 10. Serra do Pôr do Sol | `sunset` | 16000 | 135 s | 3 / 3 / 4 / 4 |
+| 7. Dunas Douradas | `dunes` | 16600 | 125 s | 2 / 3 / 3 / 3 |
+| 8. Pântano da Névoa | `swamp` | 19700 | 140 s | 3 / 2 / 4 / 3 |
+| 9. Geleira Azul | `glacier` | 20200 | 145 s | 2 / 3 / 4 / 4 (fendas mais estreitas, costelas mais baixas) |
+| 10. Serra do Pôr do Sol | `sunset` | 21200 | 155 s | 3 / 3 / 4 / 4 |
 
 Nem todos os obstáculos pedidos cabem: quando falta espaço entre os checkpoints, o excedente é descartado (ex.: a fase 9 fica com 10 de 13).
 
@@ -188,8 +188,13 @@ Cada fase tem um campo `obstacles`, montado com `OBST(contagem, ajustes)`. Os ob
 | `roof` (túnel) | crista logo antes da entrada e teto de rocha a `roofGap` px do chão | cabeça, corpo ou roda acima da linha do teto | entrar devagar (≈ 500 px/s ou menos), sem decolar na crista |
 | `log` (tronco ou pedra) | lombada circular meio enterrada | a física (empina e capota se vier rápido) | reduzir e inclinar para frente ao subir |
 | `whoops` (costelas) | sequência de lombadas | a física (quica e cai de frente) | passar com calma |
+| `trick` (rampa de manobra) | reta, rampa de 55 px e descida curva longa (começa com inclinação 1,8 e suaviza até plano em 1200 px), depois uma subida suave para perder velocidade | só a física (pouso torto) | chegar rápido, girar no ar e endireitar antes do pouso |
 
-Ajustes (padrões em `OBST`): `logR`, `whoopN`, `whoopP`, `whoopH`, `gapW: [mín, máx]`, `kick` (altura da rampa da fenda), `roofLen: [mín, máx]`, `roofGap` (altura livre), `roofBump` e `roofCrest: [subida, descida]` (crista antes do túnel), `roofWhoops` (lombadas dentro do túnel).
+Ajustes (padrões em `OBST`): `logR`, `whoopN`, `whoopP`, `whoopH`, `gapW: [mín, máx]`, `kick` (altura da rampa da fenda), `roofLen: [mín, máx]`, `roofGap` (altura livre), `roofBump` e `roofCrest: [subida, descida]` (crista antes do túnel), `roofWhoops` (lombadas dentro do túnel), `trickKick`, `trickLand` e `trickGrade` (rampa de manobra).
+
+Sobre a rampa de manobra: antes dela, o voo mais longo de qualquer fase era de ~0,7 s, e um mortal leva ~1 s, então mortais eram praticamente impossíveis. Com a rampa, o voo fica entre ~1,15 s (chegando a 450–550 px/s) e ~1,6 s (com turbo). O pouso é curvo para que qualquer velocidade entre 450 e 950 px/s pouse ainda na descida, sem impacto forte. O resto da pista depois da rampa é deslocado para baixo (a fase desce ~1000 px), para não sobrar uma subida enorme. A câmera desce junto nos saltos altos (`camTarget`) e nunca deixa a moto sair da tela.
+
+Com os pilotos automáticos: a moto completa o mortal com e sem turbo; o quadriciclo, que gira mais devagar, só com turbo. O jogo conta o mortal quando a rotação no ar chega a 360° menos 0,9 rad (~308°), porque o jogador precisa endireitar antes de pousar.
 
 Detalhes que importam:
 
@@ -269,6 +274,7 @@ Pool fixo de 420 partículas, sem criar objetos durante o jogo: poeira, terra e 
 8. **Obstáculos** (sem mexer na física): fendas, túneis de teto baixo, troncos/pedras e costelas em todas as fases, com placas de aviso, dicas na tela de início e mensagens de queda próprias. Motivo: só acelerar e usar turbo bastava para passar de fase.
 9. **Tempo apertado**: o limite das fases caiu de 120–205 s para 60–110 s.
 10. **Mais fases e quadriciclo**: fases 7 a 10 com quatro ambientes novos derivados dos existentes, e o quadriciclo como segundo veículo (escolha no menu, física própria em `VEHICLES.quad`, desenho próprio).
+11. **Mortais possíveis**: rampas de manobra em todas as fases (placa azul com seta em círculo), giro no ar mais rápido (`airTorque` 12,5→18, `maxSpin` 7,5→10), freio de giro ao soltar a inclinação, tolerância maior para contar o mortal e câmera que mostra o pouso.
 
 ## 10. Como testar
 

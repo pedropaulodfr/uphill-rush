@@ -60,29 +60,30 @@
   const OBST = (count, o) => Object.assign({
     logR: 18, whoopN: 5, whoopP: 125, whoopH: 20, gapW: [150, 200], kick: 50,
     roofLen: [380, 480], roofGap: 100, roofBump: 32, roofCrest: [150, 70], roofWhoops: 0,
+    trickKick: 55, trickLand: 1200, trickGrade: 1.8,
   }, o, { count });
 
   const LEVELS = [
-    { name: 'Campos Verdes', theme: 'green', seed: 1337, length: 8000, diff: 0.55, time: 60, stars: 8, turbos: 3,
-      obstacles: OBST({ log: 2, whoops: 1, gap: 1, roof: 1 }, { gapW: [130, 150] }) },
-    { name: 'Floresta de Outono', theme: 'autumn', seed: 2024, length: 9000, diff: 0.68, time: 65, stars: 8, turbos: 3,
-      obstacles: OBST({ log: 2, whoops: 1, gap: 2, roof: 1 }, { gapW: [140, 180], whoopH: 22, roofBump: 33 }) },
-    { name: 'Cânion Seco', theme: 'canyon', seed: 4242, length: 10000, diff: 0.8, time: 70, stars: 8, turbos: 3,
-      obstacles: OBST({ log: 1, whoops: 2, gap: 2, roof: 2 }, { gapW: [160, 200], whoopH: 22, roofBump: 34 }) },
-    { name: 'Pico Nevado', theme: 'snow', seed: 9001, length: 12000, diff: 1.05, time: 90, stars: 8, turbos: 4, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.55, hillScale: 0.75,
-      obstacles: OBST({ log: 2, whoops: 2, gap: 2, roof: 2 }, { gapW: [170, 210], whoopH: 24, whoopN: 6, roofBump: 34, roofWhoops: 8 }) },
-    { name: 'Vale Vulcânico', theme: 'volcano', seed: 6661, length: 12500, diff: 1.12, time: 95, stars: 10, turbos: 4, rampScale: 0.78, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.75,
-      obstacles: OBST({ log: 2, whoops: 2, gap: 3, roof: 2 }, { gapW: [170, 210], logR: 20, whoopH: 24, whoopN: 6, roofBump: 35, roofWhoops: 9 }) },
-    { name: 'Serra ao Luar', theme: 'night', seed: 7777, length: 13500, diff: 1.18, time: 110, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
-      obstacles: OBST({ log: 2, whoops: 2, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
-    { name: 'Dunas Douradas', theme: 'dunes', seed: 3131, length: 14000, diff: 1.15, time: 115, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.45, hillScale: 0.9,
-      obstacles: OBST({ log: 2, whoops: 3, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
-    { name: 'Pântano da Névoa', theme: 'swamp', seed: 5150, length: 14500, diff: 1.2, time: 120, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.45, hillScale: 0.9,
-      obstacles: OBST({ log: 3, whoops: 2, gap: 4, roof: 3 }, { gapW: [180, 225], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
-    { name: 'Geleira Azul', theme: 'glacier', seed: 8282, length: 15000, diff: 1.22, time: 125, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.45, hillScale: 0.85,
-      obstacles: OBST({ log: 2, whoops: 3, gap: 4, roof: 4 }, { gapW: [170, 205], logR: 20, whoopH: 23, whoopN: 6, roofBump: 37, roofWhoops: 11 }) },
-    { name: 'Serra do Pôr do Sol', theme: 'sunset', seed: 9999, length: 16000, diff: 1.25, time: 135, stars: 12, turbos: 6, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
-      obstacles: OBST({ log: 3, whoops: 3, gap: 4, roof: 4 }, { gapW: [190, 235], logR: 21, whoopH: 26, whoopN: 7, roofBump: 38, roofWhoops: 12 }) },
+    { name: 'Campos Verdes', theme: 'green', seed: 1337, length: 10600, diff: 0.55, time: 70, stars: 8, turbos: 3,
+      obstacles: OBST({ trick: 1, log: 2, whoops: 1, gap: 1, roof: 1 }, { gapW: [130, 150] }) },
+    { name: 'Floresta de Outono', theme: 'autumn', seed: 2024, length: 11600, diff: 0.68, time: 75, stars: 8, turbos: 3,
+      obstacles: OBST({ trick: 1, log: 2, whoops: 1, gap: 2, roof: 1 }, { gapW: [140, 180], whoopH: 22, roofBump: 33 }) },
+    { name: 'Cânion Seco', theme: 'canyon', seed: 4242, length: 12600, diff: 0.8, time: 80, stars: 8, turbos: 3,
+      obstacles: OBST({ trick: 1, log: 1, whoops: 2, gap: 2, roof: 2 }, { gapW: [160, 200], whoopH: 22, roofBump: 34 }) },
+    { name: 'Pico Nevado', theme: 'snow', seed: 9001, length: 14600, diff: 1.05, time: 100, stars: 8, turbos: 4, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.55, hillScale: 0.75,
+      obstacles: OBST({ trick: 1, log: 2, whoops: 2, gap: 2, roof: 2 }, { gapW: [170, 210], whoopH: 24, whoopN: 6, roofBump: 34, roofWhoops: 8 }) },
+    { name: 'Vale Vulcânico', theme: 'volcano', seed: 6661, length: 15100, diff: 1.12, time: 105, stars: 10, turbos: 4, rampScale: 0.78, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.75,
+      obstacles: OBST({ trick: 1, log: 2, whoops: 2, gap: 3, roof: 2 }, { gapW: [170, 210], logR: 20, whoopH: 24, whoopN: 6, roofBump: 35, roofWhoops: 9 }) },
+    { name: 'Serra ao Luar', theme: 'night', seed: 7777, length: 16100, diff: 1.18, time: 120, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
+      obstacles: OBST({ trick: 1, log: 2, whoops: 2, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
+    { name: 'Dunas Douradas', theme: 'dunes', seed: 3131, length: 16600, diff: 1.15, time: 125, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.45, hillScale: 0.9,
+      obstacles: OBST({ trick: 1, log: 2, whoops: 3, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
+    { name: 'Pântano da Névoa', theme: 'swamp', seed: 5150, length: 19700, diff: 1.2, time: 140, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.45, hillScale: 0.9,
+      obstacles: OBST({ trick: 2, log: 3, whoops: 2, gap: 4, roof: 3 }, { gapW: [180, 225], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
+    { name: 'Geleira Azul', theme: 'glacier', seed: 8282, length: 20200, diff: 1.22, time: 145, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.45, hillScale: 0.85,
+      obstacles: OBST({ trick: 2, log: 2, whoops: 3, gap: 4, roof: 4 }, { gapW: [170, 205], logR: 20, whoopH: 23, whoopN: 6, roofBump: 37, roofWhoops: 11 }) },
+    { name: 'Serra do Pôr do Sol', theme: 'sunset', seed: 9999, length: 21200, diff: 1.25, time: 155, stars: 12, turbos: 6, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
+      obstacles: OBST({ trick: 2, log: 3, whoops: 3, gap: 4, roof: 4 }, { gapW: [190, 235], logR: 21, whoopH: 26, whoopN: 7, roofBump: 38, roofWhoops: 12 }) },
   ];
 
   let T = null; // dados da fase atual
@@ -172,6 +173,7 @@
     whoops: (O) => O.whoopN * O.whoopP + 80,
     gap: (O) => 320 + 170 + O.gapW[1] + 320,
     roof: (O) => 260 + O.roofLen[1],
+    trick: (O) => 400 + 150 + O.trickLand + 600,
   };
 
   function addObstacles(L, ys, n, cps) {
@@ -194,7 +196,7 @@
     const flatten = (x0, x1, up, down) => {
       const ya = yAt(x0), yo = yAt(x1), len = x1 - x0;
       const yb = clamp(yo, ya - (up ?? 0.35) * len, ya + (down ?? 0.35) * len);
-      const M0 = 200, M1 = Math.max(110, Math.abs(yo - yb) * 3);
+      const M0 = 320, M1 = Math.max(110, Math.abs(yo - yb) * 3);
       const line = (x) => ya + (yb - ya) * clamp((x - x0) / len, 0, 1);
       each(x0 - M0, x1 + M1, (i, x) => {
         const w = x < x0 ? smooth((x - x0 + M0) / M0) : x > x1 ? smooth((x1 + M1 - x) / M1) : 1;
@@ -241,6 +243,22 @@
           each(xt0 + 60, xt1 - 60, (i, x) => { ys[i] = base(x) - O.roofWhoops * Math.sin(Math.PI * (x - xt0 - 60) / 110) ** 2; });
         }
         return { type: 'roof', x0: xt0, x1: xt1, ya: base(xt0), yb: base(xt1), c: O.roofGap, sign: x0 - 60 };
+      },
+      // rampa de manobra: rampa alta e descida longa para pousar, com voo de mais de 1 s
+      trick(x0) {
+        const RUN = 400, K = 150, OUT = 600, RISE = 150, G = O.trickGrade, LL = O.trickLand;
+        const xk = x0 + RUN, xl = xk + K, xe = xl + LL, xend = xe + OUT;
+        const base = flatten(x0, xl, 0.05, 0.05);
+        const lipY = base(xl) - O.trickKick, top = lipY + 30, bottom = top + (G * LL) / 2;
+        // o resto da pista desce junto, para não sobrar uma subida enorme depois do pouso
+        const off = bottom - RISE - yAt(xend);
+        each(xk, xl, (i, x) => { const t = (x - xk) / K; ys[i] = base(x) - O.trickKick * t * t; });
+        // pouso curvo: começa íngreme e suaviza, para quem chega mais rápido pousar mais longe sem impacto forte
+        each(xl + 1, xe, (i, x) => { const d = x - xl; ys[i] = top + G * d - (G * d * d) / (2 * LL); });
+        // subida suave para perder a velocidade ganha na descida
+        each(xe, xend, (i, x) => { ys[i] = bottom - RISE * smooth((x - xe) / OUT); });
+        for (let i = Math.floor(xend / SEG) + 1; i < n; i++) ys[i] += off;
+        return { type: 'trick', x0: xk, x1: xend, lip: xl, sign: xk - 60 };
       },
     };
 
@@ -373,7 +391,8 @@
   function landed() {
     const b = bike;
     landingFX(b);
-    const flips = Math.floor((Math.abs(b.airRot) + 0.6) / (Math.PI * 2));
+    // conta a volta mesmo se faltarem ~50° (o jogador precisa endireitar antes do pouso)
+    const flips = Math.floor((Math.abs(b.airRot) + 0.9) / (Math.PI * 2));
     if (flips > 0) {
       const pts = 500 * flips * flips;
       addScore(pts);
@@ -499,6 +518,7 @@
     roof: ['túnel', 'túneis', 'entre devagar, sem pular'],
     log: ['tronco', 'troncos', 'não chegue a toda'],
     whoops: ['trecho de costelas', 'trechos de costelas', 'passe com calma'],
+    trick: ['rampa de manobra', 'rampas de manobra', 'chegue rápido (o turbo ajuda) e faça um mortal no ar'],
   };
   function obstacleHint(haz) {
     if (!haz || !haz.length) return '';
@@ -739,7 +759,11 @@
     const v = vb || bike;
     const cx = (v.R.x + v.F.x) / 2, cy = (v.R.y + v.F.y) / 2;
     const vx = (bike.R.x - bike.R.px);
-    return { x: Math.max(-40, cx - W * 0.34 + clamp(vx * 14, -60, 150)), y: cy - H * 0.6 };
+    let y = cy - H * 0.6;
+    // em saltos altos, desce a câmera para mostrar onde a moto vai pousar
+    const ga = groundY(cx + 160);
+    if (ga - cy > H * 0.3) y = Math.max(y, Math.min(ga - H * 0.86, cy - H * 0.22));
+    return { x: Math.max(-40, cx - W * 0.34 + clamp(vx * 14, -60, 150)), y };
   }
   function snapCamera(soft) {
     const t = camTarget();
@@ -750,6 +774,9 @@
     const t = camTarget();
     cam.x += (t.x - cam.x) * Math.min(1, dt * 5);
     cam.y += (t.y - cam.y) * Math.min(1, dt * 3.5);
+    // em quedas longas a câmera não pode deixar a moto sair da tela
+    const v = vb || bike, by = (v.R.y + v.F.y) / 2;
+    cam.y = clamp(cam.y, by - H * 0.78, by - H * 0.2);
   }
 
   // ---------- Desenho ----------

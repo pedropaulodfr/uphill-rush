@@ -329,15 +329,24 @@
     glacier: ['#eef0ff', '#6a80d0', '#2a3470'], sunset: ['#ffc890', '#a04a5a', '#3a1a3a'],
   };
 
-  function drawSign(ctx, x, gy, art) {
+  function drawSign(ctx, x, gy, art, trick) {
     ctx.fillStyle = art.trunk[0];
     ctx.fillRect(x - 2.5, gy - 50, 5, 54);
     ctx.save();
     ctx.translate(x, gy - 58);
     ctx.rotate(Math.PI / 4);
     ctx.fillStyle = '#1b1408'; ctx.fillRect(-14, -14, 28, 28);
-    ctx.fillStyle = '#ffc928'; ctx.fillRect(-11.5, -11.5, 23, 23);
+    ctx.fillStyle = trick ? '#38c6ff' : '#ffc928'; ctx.fillRect(-11.5, -11.5, 23, 23);
     ctx.restore();
+    if (trick) {
+      // seta em círculo: rampa para mortal
+      ctx.strokeStyle = '#1b1408'; ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.arc(x, gy - 58, 6.5, -2.4, 2.2); ctx.stroke();
+      const ax = x + Math.cos(2.2) * 6.5, ay = gy - 58 + Math.sin(2.2) * 6.5;
+      ctx.fillStyle = '#1b1408';
+      ctx.beginPath(); ctx.moveTo(ax - 4.5, ay - 1); ctx.lineTo(ax + 2, ay - 4.5); ctx.lineTo(ax + 1.5, ay + 3); ctx.closePath(); ctx.fill();
+      return;
+    }
     ctx.fillStyle = '#1b1408';
     ctx.fillRect(x - 2, gy - 69, 4, 12);
     ctx.fillRect(x - 2, gy - 54, 4, 4);
@@ -434,6 +443,8 @@
             }
           }
         }
+      } else if (h.type === 'trick' && layer === 'mid') {
+        drawSign(ctx, h.sign, T.groundY(h.sign), art, true);
       } else if (h.type === 'log' && layer === 'mid') {
         const R = h.R, cx = h.cx, cy = T.groundY(h.x0 - 4) * 0.5 + T.groundY(h.x1 + 4) * 0.5;
         ctx.save();

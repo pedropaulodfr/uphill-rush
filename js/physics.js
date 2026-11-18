@@ -43,10 +43,12 @@
     restitution: 0.04,           // quique das rodas
     bodyRestitution: 0.12,
     control: {
-      airTorque: 12.5,           // aceleração angular no ar (rad/s²)
+      airTorque: 18,             // aceleração angular no ar (rad/s²)
       groundTorque: 8.5,         // transferência de peso no chão (rad/s²)
-      maxSpin: 7.5,              // limite de velocidade de giro gerado pelo jogador (rad/s)
+      maxSpin: 10,               // limite de velocidade de giro gerado pelo jogador (rad/s)
       airDamping: 0.65,          // perda de giro no ar por segundo (fração)
+      spinFree: 2.5,             // giro (rad/s) acima disso freia rápido quando o jogador solta a inclinação…
+      spinBrake: 4,              // …com esta força, para dar para parar o mortal na hora certa
     },
     crash: {
       headRadius: 10,
@@ -82,7 +84,7 @@
       engine: { accel: 1200, maxSpeed: 980, turboAccel: 1500, turboMaxSpeed: 1350, reverseAccel: 300 },
       tireGrip: 1.5,
       airDrag: 0.0002,
-      control: { airTorque: 9.5, groundTorque: 6.5, maxSpin: 6.2, airDamping: 0.8 },
+      control: { airTorque: 14.5, groundTorque: 6.5, maxSpin: 8.6, airDamping: 0.8 },
       crash: { hardLanding: 2100, badLandingAngle: 1.2 },
     }),
   };
@@ -301,6 +303,9 @@
         if (want * bs.omega < C.maxSpin) addAngular(b, bs, alpha, h);
       }
       if (air) addAngular(b, bs, -bs.omega * C.airDamping, h);
+      if (air && !input.lean && Math.abs(bs.omega) > C.spinFree) {
+        addAngular(b, bs, -(bs.omega - Math.sign(bs.omega) * C.spinFree) * C.spinBrake, h);
+      }
 
       // turbo no ar: empurrão leve na direção da moto
       if (air && input.turbo) {
