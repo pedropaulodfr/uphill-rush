@@ -52,13 +52,25 @@
     night: { deco: ['pine', 'oak', 'bush', 'pine', 'rock', 'grass'] },
   };
 
+  // Obstáculos de cada fase: quantos de cada tipo e o tamanho deles (ver addObstacles)
+  const OBST = (count, o) => Object.assign({
+    logR: 18, whoopN: 5, whoopP: 125, whoopH: 20, gapW: [150, 200], kick: 50,
+    roofLen: [380, 480], roofGap: 100, roofBump: 32, roofCrest: [150, 70], roofWhoops: 0,
+  }, o, { count });
+
   const LEVELS = [
-    { name: 'Campos Verdes', theme: 'green', seed: 1337, length: 8000, diff: 0.55, time: 120, stars: 8, turbos: 3 },
-    { name: 'Floresta de Outono', theme: 'autumn', seed: 2024, length: 9000, diff: 0.68, time: 135, stars: 8, turbos: 3 },
-    { name: 'Cânion Seco', theme: 'canyon', seed: 4242, length: 10000, diff: 0.8, time: 150, stars: 8, turbos: 3 },
-    { name: 'Pico Nevado', theme: 'snow', seed: 9001, length: 12000, diff: 1.05, time: 180, stars: 8, turbos: 4, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.55, hillScale: 0.75 },
-    { name: 'Vale Vulcânico', theme: 'volcano', seed: 6661, length: 12500, diff: 1.12, time: 190, stars: 10, turbos: 4, rampScale: 0.78, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.75 },
-    { name: 'Serra ao Luar', theme: 'night', seed: 7777, length: 13500, diff: 1.18, time: 205, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9 },
+    { name: 'Campos Verdes', theme: 'green', seed: 1337, length: 8000, diff: 0.55, time: 120, stars: 8, turbos: 3,
+      obstacles: OBST({ log: 2, whoops: 1, gap: 1, roof: 1 }, { gapW: [130, 150] }) },
+    { name: 'Floresta de Outono', theme: 'autumn', seed: 2024, length: 9000, diff: 0.68, time: 135, stars: 8, turbos: 3,
+      obstacles: OBST({ log: 2, whoops: 1, gap: 2, roof: 1 }, { gapW: [140, 180], whoopH: 22, roofBump: 33 }) },
+    { name: 'Cânion Seco', theme: 'canyon', seed: 4242, length: 10000, diff: 0.8, time: 150, stars: 8, turbos: 3,
+      obstacles: OBST({ log: 1, whoops: 2, gap: 2, roof: 2 }, { gapW: [160, 200], whoopH: 22, roofBump: 34 }) },
+    { name: 'Pico Nevado', theme: 'snow', seed: 9001, length: 12000, diff: 1.05, time: 180, stars: 8, turbos: 4, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.55, hillScale: 0.75,
+      obstacles: OBST({ log: 2, whoops: 2, gap: 2, roof: 2 }, { gapW: [170, 210], whoopH: 24, whoopN: 6, roofBump: 34, roofWhoops: 8 }) },
+    { name: 'Vale Vulcânico', theme: 'volcano', seed: 6661, length: 12500, diff: 1.12, time: 190, stars: 10, turbos: 4, rampScale: 0.78, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.75,
+      obstacles: OBST({ log: 2, whoops: 2, gap: 3, roof: 2 }, { gapW: [170, 210], logR: 20, whoopH: 24, whoopN: 6, roofBump: 35, roofWhoops: 9 }) },
+    { name: 'Serra ao Luar', theme: 'night', seed: 7777, length: 13500, diff: 1.18, time: 205, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
+      obstacles: OBST({ log: 2, whoops: 2, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
   ];
 
   let T = null; // dados da fase atual
@@ -101,32 +113,180 @@
       }
     }
 
-    const lvl = { L, th, ys, n, ramps, idx, SEG, length: L.length, groundY };
+    const cpFrac = L.checkpoints || [0.33, 0.66];
+    const haz = addObstacles(L, ys, n, cpFrac.map((f) => L.length * f));
+    const lvl = { L, th, ys, n, ramps, idx, SEG, length: L.length, groundY, haz, roofY };
     T = lvl;
 
     lvl.finishX = L.length - 250;
-    lvl.cps = [0.33, 0.66].map((f) => ({ x: Math.round(L.length * f), hit: false }));
+    lvl.cps = cpFrac.map((f) => ({ x: Math.round(L.length * f), hit: false }));
 
+    // itens não podem ficar no fundo de uma fenda nem dentro da rocha de um túnel
+    const itemY = (x, y) => {
+      for (const h of haz) {
+        if (h.type === 'gap' && x > h.x0 - 20 && x < h.x1 + 20) y = Math.min(y, h.rim - 70);
+        if (h.type === 'roof' && x > h.x0 - 30 && x < h.x1 + 30) y = Math.max(y, roofY(h, clamp(x, h.x0, h.x1)) + 30);
+      }
+      return y;
+    };
     lvl.stars = [];
     const span = L.length - 1500;
     for (let i = 0; i < L.stars; i++) {
       const x = 750 + (i + 0.5) * (span / L.stars) + (r() - 0.5) * 220;
       const high = r() < 0.45;
-      lvl.stars.push({ x, y: groundY(x) - 38 - (high ? 70 + r() * 60 : 0), got: false, ph: r() * 6 });
+      lvl.stars.push({ x, y: itemY(x, groundY(x) - 38 - (high ? 70 + r() * 60 : 0)), got: false, ph: r() * 6 });
     }
     lvl.turbos = [];
     for (let i = 0; i < L.turbos; i++) {
       const x = 1000 + (i + 0.5) * ((L.length - 1800) / L.turbos) + (r() - 0.5) * 300;
-      lvl.turbos.push({ x, y: groundY(x) - 34, got: false, ph: r() * 6 });
+      lvl.turbos.push({ x, y: itemY(x, groundY(x) - 34), got: false, ph: r() * 6 });
     }
 
     lvl.decor = [];
     for (let x = 120; x < L.length + 500; x += 90 + r() * 240) {
-      lvl.decor.push({ x, type: th.deco[Math.floor(r() * th.deco.length)], s: 0.7 + r() * 0.6, v: r() });
+      const d = { x, type: th.deco[Math.floor(r() * th.deco.length)], s: 0.7 + r() * 0.6, v: r() };
+      if (!haz.some((h) => x > h.x0 - 140 && x < h.x1 + 90)) lvl.decor.push(d);
     }
 
     buildMinimap(lvl);
     return lvl;
+  }
+
+  // ---------- Obstáculos ----------
+  // Só mudam o relevo e criam zonas de perigo checadas pelo jogo; a física da moto é a mesma
+  const smooth = (t) => t * t * (3 - 2 * t);
+  const FOOT = {
+    log: (O) => 150 + O.logR * 2,
+    whoops: (O) => O.whoopN * O.whoopP + 80,
+    gap: (O) => 320 + 170 + O.gapW[1] + 320,
+    roof: (O) => 260 + O.roofLen[1],
+  };
+
+  function addObstacles(L, ys, n, cps) {
+    const O = L.obstacles;
+    if (!O) return [];
+    const r = rng(L.seed * 7 + 11);
+    const types = [];
+    for (const k in O.count) for (let i = 0; i < O.count[k]; i++) types.push(k);
+    for (let i = types.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [types[i], types[j]] = [types[j], types[i]]; }
+
+    const yAt = (x) => {
+      const i = clamp(Math.floor(x / SEG), 0, n - 2), t = clamp((x - i * SEG) / SEG, 0, 1);
+      return ys[i] + (ys[i + 1] - ys[i]) * t;
+    };
+    const each = (x0, x1, fn) => {
+      for (let i = Math.max(0, Math.ceil(x0 / SEG)); i <= Math.min(n - 1, Math.floor(x1 / SEG)); i++) fn(i, i * SEG);
+    };
+    // troca o relevo do trecho por uma reta de inclinação limitada (up/down = rampa máxima)
+    // e devolve essa reta; a saída é longa o bastante para voltar ao relevo original sem degrau
+    const flatten = (x0, x1, up, down) => {
+      const ya = yAt(x0), yo = yAt(x1), len = x1 - x0;
+      const yb = clamp(yo, ya - (up ?? 0.35) * len, ya + (down ?? 0.35) * len);
+      const M0 = 200, M1 = Math.max(110, Math.abs(yo - yb) * 3);
+      const line = (x) => ya + (yb - ya) * clamp((x - x0) / len, 0, 1);
+      each(x0 - M0, x1 + M1, (i, x) => {
+        const w = x < x0 ? smooth((x - x0 + M0) / M0) : x > x1 ? smooth((x1 + M1 - x) / M1) : 1;
+        ys[i] += (line(x) - ys[i]) * w;
+      });
+      return line;
+    };
+
+    const build = {
+      log(x0) {
+        const R = O.logR, cx = x0 + 75 + R, base = flatten(x0, x0 + FOOT.log(O), 0.25, 0.25);
+        each(cx - R, cx + R, (i, x) => { const d = x - cx; ys[i] = base(x) - Math.sqrt(Math.max(0, R * R - d * d)) * 0.95; });
+        return { type: 'log', x0: cx - R, x1: cx + R, cx, cy: base(cx) - R * 0.95 + R * 0.15, R };
+      },
+      whoops(x0) {
+        const x1 = x0 + FOOT.whoops(O), base = flatten(x0, x1, 0.25, 0.25), s = x0 + 40, P = O.whoopP;
+        each(s, s + O.whoopN * P, (i, x) => { const t = ((x - s) % P) / P; ys[i] = base(x) - O.whoopH * Math.sin(Math.PI * t) ** 2; });
+        return { type: 'whoops', x0: s, x1: s + O.whoopN * P };
+      },
+      gap(x0) {
+        const gw = O.gapW[0] + r() * (O.gapW[1] - O.gapW[0]);
+        const kh = O.kick, lh = O.kick * 0.4, K = 170, LND = 320, RUN = 320;
+        // reta de embalo antes da rampa, para dar para chegar com velocidade
+        const xk = x0 + RUN, xp0 = xk + K, xp1 = xp0 + gw, base = flatten(x0, xp1 + LND, 0.04, 0.12);
+        each(xk, xp0, (i, x) => { const t = (x - xk) / K; ys[i] = base(x) - kh * t * t; });
+        const ip0 = Math.ceil(xp0 / SEG), ip1 = Math.floor(xp1 / SEG);
+        const rimL = ys[ip0 - 1], depth = 210;
+        each(xp0, xp1, (i, x) => { ys[i] = base(x) + depth; });
+        each(xp1, xp1 + LND, (i, x) => { const u = (x - xp1) / LND; ys[i] = base(x) - lh * (0.5 + 0.5 * Math.cos(Math.PI * u)); });
+        const rimR = ys[ip1 + 1];
+        return { type: 'gap', x0: (ip0 - 1) * SEG, x1: (ip1 + 1) * SEG, px0: ip0 * SEG, px1: ip1 * SEG,
+          rim: Math.max(rimL, rimR), rimL, rimR, bottom: ys[ip0], sign: xk - 60 };
+      },
+      roof(x0) {
+        const len = O.roofLen[0] + r() * (O.roofLen[1] - O.roofLen[0]);
+        const lead = 260, xt0 = x0 + lead, xt1 = xt0 + len, base = flatten(x0, xt1, 0.06, 0.04);
+        // crista logo antes da entrada: quem chega rápido demais sai voando e bate no teto
+        const C0 = x0 + 40, C1 = x0 + 40 + O.roofCrest[0], C2 = C1 + O.roofCrest[1];
+        each(C0, C2, (i, x) => {
+          const k = x < C1 ? smooth((x - C0) / (C1 - C0)) : 1 - smooth((x - C1) / (C2 - C1));
+          ys[i] = base(x) - O.roofBump * k;
+        });
+        if (O.roofWhoops) {
+          each(xt0 + 60, xt1 - 60, (i, x) => { ys[i] = base(x) - O.roofWhoops * Math.sin(Math.PI * (x - xt0 - 60) / 110) ** 2; });
+        }
+        return { type: 'roof', x0: xt0, x1: xt1, ya: base(xt0), yb: base(xt1), c: O.roofGap, sign: x0 - 60 };
+      },
+    };
+
+    // os checkpoints precisam de chão normal em volta (renascimento); o resto vira zonas livres
+    const zones = [];
+    let z0 = 1300;
+    for (const c of cps) { zones.push({ a: z0, b: c - 420, list: [] }); z0 = c + 250; }
+    zones.push({ a: z0, b: L.length - 700, list: [] });
+    const GAP = 220, Z = zones.reduce((s, z) => s + z.b - z.a, 0);
+    const fits = (z, fp) => z.list.reduce((s, e) => s + FOOT[e[0]](O) + GAP, 0) + fp + GAP <= z.b - z.a;
+    // os maiores escolhem zona primeiro, para não sobrarem só espaços pequenos
+    const bySize = types.map((k, i) => [k, i]).sort((u, v) => FOOT[v[0]](O) - FOOT[u[0]](O));
+    bySize.forEach(([k, i]) => {
+      // zona preferida: a que cai na posição proporcional do obstáculo; senão a mais próxima com espaço
+      let p = ((i + 0.5) / types.length) * Z, zi = 0;
+      while (zi < zones.length - 1 && p > zones[zi].b - zones[zi].a) { p -= zones[zi].b - zones[zi].a; zi++; }
+      const order = zones.map((_, j) => j).sort((u, v) => Math.abs(u - zi) - Math.abs(v - zi) || v - u);
+      const z = order.map((j) => zones[j]).find((zz) => fits(zz, FOOT[k](O)));
+      if (z) z.list.push([k, i]);
+    });
+    for (const z of zones) z.list = z.list.sort((u, v) => u[1] - v[1]).map((e) => e[0]);
+    const haz = [];
+    for (const z of zones) {
+      const used = z.list.reduce((s, k) => s + FOOT[k](O), 0);
+      const free = (z.b - z.a - used) / (z.list.length + 1);
+      let x = z.a;
+      for (const k of z.list) {
+        x += free * (0.7 + r() * 0.3);
+        haz.push(build[k](x));
+        x += FOOT[k](O);
+      }
+    }
+    return haz;
+  }
+
+  // Altura do teto de um túnel em x (as pontas são arredondadas)
+  function roofY(h, x) {
+    const t = clamp((x - h.x0) / (h.x1 - h.x0), 0, 1), E = 36;
+    const d = Math.min(x - h.x0, h.x1 - x);
+    const edge = d < E ? E - Math.sqrt(Math.max(0, E * E - (E - Math.max(0, d)) ** 2)) : 0;
+    return h.ya + (h.yb - h.ya) * t - h.c - edge;
+  }
+
+  function hazardHit(b) {
+    const cx = (b.R.x + b.F.x) / 2;
+    for (const h of T.haz) {
+      if (cx < h.x0 - 80 || cx > h.x1 + 80) continue;
+      if (h.type === 'gap') {
+        if (cx > h.x0 && cx < h.x1 && Math.min(b.R.y, b.F.y) > h.rim + 45) return 'fenda';
+      } else if (h.type === 'roof') {
+        const pts = [[b.H, 11], [b.P, 9], [b.R, 17], [b.F, 17]];
+        for (const [p, rad] of pts) {
+          if (p.x < h.x0 - rad * 0.5 || p.x > h.x1 + rad * 0.5) continue;
+          if (p.y - rad < roofY(h, clamp(p.x, h.x0, h.x1))) return 'teto';
+        }
+      }
+    }
+    return null;
   }
 
   function groundY(x) {
@@ -185,6 +345,8 @@
 
     // Queda: cabeça ou corpo no chão, impacto forte demais ou pouso muito torto
     if (Serra.Physics.crashCheck(b)) { crash(); return; }
+    const hz = hazardHit(b);
+    if (hz) { crash(hz === 'fenda' ? 'CAIU NA FENDA!' : 'BATEU NO TETO!'); return; }
 
     const nowAir = !b.gR && !b.gF;
     if (nowAir) { b.airT += dt; b.airRot += da; b.airVy = ((b.R.y - b.R.py) + (b.F.y - b.F.py)) / 2; }
@@ -305,14 +467,33 @@
       <h2>${L.name}</h2>
       <p>Chegue à bandeira quadriculada em até <b>${fmtTime(L.time)}</b>.<br>
       Pegue as <b>${L.stars} estrelas</b> e as cápsulas azuis de turbo pelo caminho.</p>
+      ${obstacleHint(T.haz)}
     `, [{ label: 'Acelerar!', fn: () => { hideCard(); setState('play'); } }]);
   }
 
-  function crash() {
+  // Resumo dos obstáculos da fase, com a dica de como passar por cada um
+  const OBST_INFO = {
+    gap: ['fenda', 'fendas', 'chegue rápido na rampa'],
+    roof: ['túnel', 'túneis', 'entre devagar, sem pular'],
+    log: ['tronco', 'troncos', 'não chegue a toda'],
+    whoops: ['trecho de costelas', 'trechos de costelas', 'passe com calma'],
+  };
+  function obstacleHint(haz) {
+    if (!haz || !haz.length) return '';
+    const n = {};
+    for (const h of haz) n[h.type] = (n[h.type] || 0) + 1;
+    const items = Object.keys(OBST_INFO).filter((k) => n[k]).map((k) => {
+      const [one, many, tip] = OBST_INFO[k];
+      return `<li><b>${n[k]} ${n[k] > 1 ? many : one}</b>: ${tip}</li>`;
+    });
+    return `<ul class="obst">${items.join('')}</ul>`;
+  }
+
+  function crash(msg) {
     if (game.state !== 'play') return;
     setState('crash');
     game.crashT = 1.7;
-    bigMsg('QUEDA!');
+    bigMsg(msg || 'QUEDA!');
     sfx([180, 110, 70], 0.13, 'sawtooth', 0.08);
     Serra.BikeRenderer.onCrash(bike);
     if (assets) Serra.Particles.crash(bike.H.x, bike.H.y, assets.art);
@@ -551,10 +732,13 @@
     ctx.save();
     ctx.translate(-Math.round(view.x * renderScale) / renderScale, -Math.round(view.y * renderScale) / renderScale);
     Sc.drawTrackDecor(ctx, T, assets, view);
+    Sc.drawHazards(ctx, T, assets, view, game.clock, 'back');
     Sc.drawTerrain(ctx, T, assets, view);
+    Sc.drawHazards(ctx, T, assets, view, game.clock, 'mid');
     Sc.drawItems(ctx, T, game.clock, view);
     Serra.Particles.draw(ctx, false);
     Serra.BikeRenderer.draw(ctx, vb || bike, groundY, { wheelR: WHEEL_R, clock: game.clock });
+    Sc.drawHazards(ctx, T, assets, view, game.clock, 'front');
     Sc.drawTrackEdge(ctx, T, assets, view);
     Serra.Particles.draw(ctx, true);
     ctx.restore();

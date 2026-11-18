@@ -141,6 +141,8 @@ const LEVELS = [
 ];
 ```
 
+(Trecho resumido: cada fase também tem `obstacles: OBST(...)`, descrito em "Obstáculos" abaixo.)
+
 Ajustes opcionais por fase (sem eles, a fase é gerada exatamente como antes):
 
 | Ajuste | Efeito |
@@ -153,22 +155,44 @@ Ajustes opcionais por fase (sem eles, a fase é gerada exatamente como antes):
 
 Cuidado: a sequência de chamadas a `r()` dentro de `buildLevel` define a pista inteira. Não insira nem remova chamadas a `r()` antes da geração de rampas, estrelas e turbos, senão as fases mudam. Mudar só o conteúdo de `THEMES[...].deco` não altera a pista.
 
-Cada fase guarda `stars`, `turbos`, `cps` (checkpoints), `decor` (vegetação), `finishX` e uma referência `groundY`.
+Cada fase guarda `stars`, `turbos`, `cps` (checkpoints), `decor` (vegetação), `haz` (obstáculos), `finishX` e as referências `groundY` e `roofY`.
+
+### Obstáculos (`addObstacles` em `game.js`)
+
+Cada fase tem um campo `obstacles`, montado com `OBST(contagem, ajustes)`. Os obstáculos **não mexem na física**: eles só mudam o relevo (`ys`) e criam zonas de perigo que o jogo confere a cada passo fixo (`hazardHit`, chamado em `physics()` logo depois de `crashCheck`).
+
+| Tipo | O que é | O que derruba | Como passar |
+|---|---|---|---|
+| `gap` (fenda) | reta de embalo, rampa, abismo com água/lava/lama no fundo e rampa de pouso | as duas rodas abaixo da borda + 45 px | chegar rápido (≈ 650 px/s ou mais) e pousar alinhado |
+| `roof` (túnel) | crista logo antes da entrada e teto de rocha a `roofGap` px do chão | cabeça, corpo ou roda acima da linha do teto | entrar devagar (≈ 500 px/s ou menos), sem decolar na crista |
+| `log` (tronco ou pedra) | lombada circular meio enterrada | a física (empina e capota se vier rápido) | reduzir e inclinar para frente ao subir |
+| `whoops` (costelas) | sequência de lombadas | a física (quica e cai de frente) | passar com calma |
+
+Ajustes (padrões em `OBST`): `logR`, `whoopN`, `whoopP`, `whoopH`, `gapW: [mín, máx]`, `kick` (altura da rampa da fenda), `roofLen: [mín, máx]`, `roofGap` (altura livre), `roofBump` e `roofCrest: [subida, descida]` (crista antes do túnel), `roofWhoops` (lombadas dentro do túnel).
+
+Detalhes que importam:
+
+- Os obstáculos usam um gerador próprio (`rng(seed * 7 + 11)`), então não mudam as rampas, estrelas e turbos gerados por `r()`.
+- `flatten(x0, x1, up, down)` troca o relevo do trecho por uma reta com inclinação limitada e volta ao relevo original com uma transição longa. As fendas aceitam no máximo 4% de subida (o lado do pouso nunca fica mais alto) e os túneis ficam quase planos; sem isso a crista vira degrau e derruba mesmo quem vem devagar.
+- A pista é dividida em zonas livres entre os checkpoints (420 px antes e 250 px depois de cada um ficam com chão normal, para o renascimento). Os obstáculos maiores escolhem zona primeiro; se não couber, o obstáculo é descartado.
+- Estrelas e turbos sobre uma fenda sobem para cima da borda; dentro de um túnel, descem para baixo do teto. A vegetação não é colocada sobre obstáculos.
+- A tela de início da fase lista os obstáculos com uma dica (`obstacleHint`), e a queda mostra "CAIU NA FENDA!" ou "BATEU NO TETO!".
+- O desenho fica em `Serra.Scenery.drawHazards(ctx, T, A, cam, clock, layer)`: `'back'` (sombra dentro do túnel), `'mid'` (rocha, escoras, troncos, placas) e `'front'` (líquido das fendas, na frente da moto).
 
 ### Dificuldade medida
 
-A dificuldade foi calibrada com dois pilotos automáticos (ver seção 10). Resultado atual:
+A dificuldade foi calibrada com pilotos automáticos (ver seção 10), 90 s por fase, vidas e tempo infinitos:
 
-| Fase | Intermediário | Experiente |
-|---|---|---|
-| 1 | 10 s, 0 quedas | 10 s, 0 |
-| 2 | 12 s, 0 | 12 s, 0 |
-| 3 | 15 s, 0 | 14 s, 0 |
-| 4 | 23 s, 1 | 17 s, 0 |
-| 5 | 29 s, 2 | 19 s, 0 |
-| 6 | 44 s, 4 | 19 s, 0 |
+| Fase | Só acelerador + turbo | Só acelerador | Intermediário | Experiente |
+|---|---|---|---|---|
+| 1 | não termina | não termina | 13 s, 0 quedas | 14 s, 0 |
+| 2 | não termina | não termina | trava num salto natural | 15 s, 0 |
+| 3 | não termina | não termina | 16 s, 0 | 16 s, 0 |
+| 4 | não termina | não termina | 22 s, 0 | 22 s, 0 |
+| 5 | não termina | não termina | trava num salto natural | 22 s, 0 |
+| 6 | não termina | não termina | 28 s, 1 | 28 s, 1 |
 
-Os números servem para comparar fases entre si; uma pessoa joga mais devagar. Os resultados são muito sensíveis aos ajustes (ex.: `rampScale` 0,72 → 0 quedas; 0,85 → 14 quedas na fase 5).
+Antes dos obstáculos, o piloto "só acelerador + turbo" terminava as 6 fases com no máximo 1 queda. Os números servem para comparar versões; uma pessoa joga mais devagar. Os resultados são muito sensíveis a qualquer ajuste (mudar um obstáculo de lugar muda a velocidade de chegada nos trechos seguintes).
 
 ## 7. Gráficos
 
@@ -220,6 +244,7 @@ Pool fixo de 420 partículas, sem criar objetos durante o jogo: poeira, terra e 
 5. **Dificuldade**: ajustes opcionais de terreno por fase e calibração das fases 4, 5 e 6.
 6. **Correções visuais**: lava das montanhas virou crateras e rios (antes parecia chuva); linha vertical de luz nas montanhas removida; transição neve/rocha sem pontilhado.
 7. **Nova física**: o modelo de 3 pontos foi trocado por `physics.js` (suspensão real, tração limitada pela carga, curva de motor, arrasto v², giro com inércia, aterrissagens absorvidas, passo fixo e interpolação). Junto vieram a correção do nome do mortal (estava invertido) e o renascimento em trecho plano. Depois, a dificuldade das fases 5 e 6 foi recalibrada.
+8. **Obstáculos** (sem mexer na física): fendas, túneis de teto baixo, troncos/pedras e costelas em todas as fases, com placas de aviso, dicas na tela de início e mensagens de queda próprias. Motivo: só acelerar e usar turbo bastava para passar de fase.
 
 ## 10. Como testar
 
@@ -244,6 +269,9 @@ Dicas que funcionaram:
 - Para gerar um ambiente antes de abrir a fase direto: `await Serra.Assets.build('night')`.
 - Os testes de física podem rodar fora do jogo, com terreno sintético: `{ ys: Float32Array, n, SEG: 16 }` passado para `createBike` e `step`.
 - **Pilotos automáticos** usados para calibrar a dificuldade: a cada 6 passos, comparam o ângulo da moto (`atan2(F.y-R.y, F.x-R.x)`) com a inclinação do chão (no ar, com a do trecho à frente) e inclinam para corrigir; aceleram, soltam o acelerador antes de cristas (mudança de inclinação > 0,3 rad a mais de 620 px/s) e freiam acima de 760 px/s nesses pontos; usam turbo em subidas lentas. O **experiente** também antecipa o giro (prevê o ângulo 0,3 s à frente no ar). Durante o teste, fixe `game.lives = 999` e `game.time = 999`.
+- Para os obstáculos, os pilotos também "enxergam" `level.haz`: antes de uma fenda aceleram (turbo abaixo de 820 px/s), antes de um túnel seguram abaixo de 520 px/s, antes de costelas abaixo de 450 e de troncos abaixo de 650; em qualquer caso soltam o acelerador se a moto empinar mais de 0,45 rad acima do chão. Os pilotos "cegos" (`blind`: acelerador + turbo; `gas`: só acelerador) servem para confirmar que só acelerar não basta.
+- Para medir um obstáculo isolado, deixe só ele na fase em memória (`levels[i].obstacles.count = { roof: 1 }`), recarregue com `load(i)` e teste velocidades-limite diferentes.
+- Os testes que completam fases gravam `serraTurbo.best` e `serraTurbo.unlocked`; guarde e restaure esses valores, senão fica um recorde falso no navegador.
 - Depois de testes que completam fases, apague `localStorage['serraTurbo.unlocked']`, para não deixar progresso falso no navegador.
 
 Verificações recomendadas depois de mexer na física: moto parada não escorrega nem treme; nenhuma roda afunda no terreno; pousos não quicam; resultado igual com FPS diferentes; os dois pilotos automáticos completam as 6 fases.
@@ -261,7 +289,8 @@ Verificações recomendadas depois de mexer na física: moto parada não escorre
 
 - **Não há teste com jogador humano**: todos os testes foram automáticos. A sensação de aceleração, suspensão e controle no ar deve ser avaliada jogando e ajustada em `PHYS`.
 - Não existe uma referência de "hash" da nova física. Antes de mexer nela, registre uma simulação fixa (sequência de teclas → posições) para conferir depois.
-- O jogo não tem obstáculos separados (pedras, troncos); as colisões são só com o terreno.
+- Os obstáculos foram calibrados só com pilotos automáticos; vale jogar e ajustar `gapW`, `roofGap`, `roofBump` e `whoopH` pela sensação real.
+- O tempo limite das fases continua folgado (2 a 3 minutos para percursos de 15 a 30 s); dá para apertar se quiser mais pressão.
 - GitHub Pages ainda não foi ativado; para isso, ajuste o `index.html` como descrito na seção 2.
 - O desenho do chassi segue a linha entre as rodas, não o ângulo real do chassi da física; a diferença é pequena, mas um refino possível é desenhar o chassi pelo referencial `Cr → Cf`.
 - Sem efeitos sonoros de aterrissagem e suspensão; o áudio é todo sintetizado.

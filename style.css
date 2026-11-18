@@ -324,6 +324,17 @@ html, body {
 .card h2 { font-size: 40px; text-shadow: 0 4px 0 #2a1d08; }
 .card p { margin: 0; font-size: 15px; line-height: 1.45; }
 .card .sub { font-family: var(--font-display); font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; color: #8a5d17; }
+.card .obst {
+  margin: 0 auto;
+  padding: 8px 14px;
+  list-style: none;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.5;
+  background: rgba(138, 93, 23, 0.1);
+  border: 1px dashed #cdb37a;
+  border-radius: 8px;
+}
 
 .keys {
   display: grid;

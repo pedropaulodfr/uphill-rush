@@ -319,6 +319,149 @@
     }
   };
 
+  // ---------- Obstáculos ----------
+  // O que tem no fundo das fendas, por ambiente: [superfície, meio, fundo]
+  const LIQUID = {
+    green: ['#8ad8f4', '#2d7fb5', '#14456e'], autumn: ['#93cfe0', '#2f6f96', '#163a58'],
+    night: ['#7fb2dc', '#1d4470', '#0b1e38'], snow: ['#e2f4ff', '#5fa9d8', '#24557f'],
+    canyon: ['#d2ad72', '#7a5530', '#3d2614'], volcano: ['#ffe08a', '#ff7a1a', '#a3180a'],
+  };
+
+  function drawSign(ctx, x, gy, art) {
+    ctx.fillStyle = art.trunk[0];
+    ctx.fillRect(x - 2.5, gy - 50, 5, 54);
+    ctx.save();
+    ctx.translate(x, gy - 58);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = '#1b1408'; ctx.fillRect(-14, -14, 28, 28);
+    ctx.fillStyle = '#ffc928'; ctx.fillRect(-11.5, -11.5, 23, 23);
+    ctx.restore();
+    ctx.fillStyle = '#1b1408';
+    ctx.fillRect(x - 2, gy - 69, 4, 12);
+    ctx.fillRect(x - 2, gy - 54, 4, 4);
+  }
+
+  function roofPath(ctx, T, h, top) {
+    ctx.beginPath();
+    ctx.moveTo(h.x0 - 30, top);
+    for (let x = h.x0; x < h.x1; x += 8) ctx.lineTo(x, T.roofY(h, x));
+    ctx.lineTo(h.x1, T.roofY(h, h.x1));
+    ctx.lineTo(h.x1 + 30, top);
+    ctx.closePath();
+  }
+
+  // layer 'back': sombra dentro do túnel; 'mid': rocha, troncos e placas; 'front': líquido das fendas
+  Sc.drawHazards = (ctx, T, A, cam, clock, layer) => {
+    if (!T.haz || !T.haz.length) return;
+    const art = A.art, theme = T.L.theme;
+    for (const h of T.haz) {
+      if (h.x1 + 160 < cam.x || h.x0 - 260 > cam.x + W) continue;
+
+      if (h.type === 'roof') {
+        if (layer === 'back') {
+          ctx.beginPath();
+          for (let x = h.x0; x <= h.x1; x += 8) ctx.lineTo(x, T.roofY(h, x));
+          for (let x = h.x1; x >= h.x0; x -= 8) ctx.lineTo(x, T.groundY(x) + 4);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(18,10,6,0.42)';
+          ctx.fill();
+        } else if (layer === 'mid') {
+          const top = cam.y - 40;
+          // escoras de madeira na entrada e na saída
+          for (const px of [h.x0 + 10, h.x1 - 10]) {
+            const ry = T.roofY(h, px), gy = T.groundY(px);
+            ctx.fillStyle = art.trunk[0]; ctx.fillRect(px - 6, ry, 12, gy - ry + 4);
+            ctx.fillStyle = art.trunk[1]; ctx.fillRect(px - 3, ry, 4, gy - ry + 4);
+          }
+          roofPath(ctx, T, h, top);
+          ctx.fillStyle = patterns.get(A) || art.dirt.base; ctx.fill();
+          ctx.strokeStyle = css(art.dirt.deep, 0.8); ctx.lineWidth = 3; ctx.stroke();
+          ctx.save();
+          ctx.clip();
+          const ry0 = Math.min(T.roofY(h, h.x0 + 40), T.roofY(h, h.x1 - 40));
+          const g = ctx.createLinearGradient(0, ry0 - 160, 0, ry0 + 10);
+          g.addColorStop(0, css(art.rock[1], 0.15)); g.addColorStop(1, css(art.dirt.deep, 0.7));
+          ctx.fillStyle = g; ctx.fillRect(h.x0 - 40, top, h.x1 - h.x0 + 80, ry0 + 80 - top);
+          ctx.restore();
+          // borda de baixo: sombra e pedrinhas penduradas
+          ctx.beginPath();
+          for (let x = h.x0; x <= h.x1; x += 8) ctx.lineTo(x, T.roofY(h, x));
+          ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 4; ctx.stroke();
+          ctx.fillStyle = art.snowy ? '#dff0ff' : art.dirt.dark;
+          ctx.beginPath();
+          for (let x = h.x0 + 40; x < h.x1 - 30; x += 22) {
+            const y = T.roofY(h, x) - 1, l = 4 + hash(x) * 5;
+            ctx.moveTo(x - 3, y); ctx.lineTo(x, y + l); ctx.lineTo(x + 3, y);
+          }
+          ctx.fill();
+          drawSign(ctx, h.sign, T.groundY(h.sign), art);
+        }
+      } else if (h.type === 'gap') {
+        if (layer === 'mid') {
+          const g = ctx.createLinearGradient(0, h.rim, 0, h.bottom);
+          g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.55)');
+          ctx.fillStyle = g; ctx.fillRect(h.x0, h.rim, h.x1 - h.x0, h.bottom - h.rim);
+          drawSign(ctx, h.sign, T.groundY(h.sign), art);
+        } else if (layer === 'front') {
+          const L = LIQUID[theme] || LIQUID.green, lava = theme === 'volcano';
+          const x0 = h.px0 - 5, x1 = h.px1 + 5, sy = h.bottom - 55, by = h.bottom + 60;
+          const g = ctx.createLinearGradient(0, sy, 0, by);
+          g.addColorStop(0, L[1]); g.addColorStop(1, L[2]);
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.moveTo(x0, by);
+          for (let x = x0; x <= x1; x += 6) ctx.lineTo(x, sy + Math.sin(x * 0.06 + clock * 3) * 2.5);
+          ctx.lineTo(x1, by);
+          ctx.closePath(); ctx.fill();
+          ctx.beginPath();
+          for (let x = x0; x <= x1; x += 6) ctx.lineTo(x, sy + Math.sin(x * 0.06 + clock * 3) * 2.5);
+          ctx.strokeStyle = L[0]; ctx.lineWidth = 3; ctx.stroke();
+          if (lava) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const pulse = 0.5 + 0.5 * Math.sin(clock * 2.4);
+            const gl = ctx.createLinearGradient(0, sy - 70, 0, sy);
+            gl.addColorStop(0, 'rgba(255,120,30,0)'); gl.addColorStop(1, `rgba(255,120,30,${0.25 + 0.15 * pulse})`);
+            ctx.fillStyle = gl; ctx.fillRect(x0, sy - 70, x1 - x0, 70);
+            ctx.restore();
+          } else {
+            ctx.fillStyle = css(L[0], 0.55);
+            for (let k = 0; k < 4; k++) {
+              const x = x0 + ((hash(h.x0 + k) * (x1 - x0) + clock * 14 * (k % 2 ? 1 : -1)) % (x1 - x0) + (x1 - x0)) % (x1 - x0);
+              ctx.fillRect(x, sy + 8 + k * 9, theme === 'snow' ? 18 : 10, 2);
+            }
+          }
+        }
+      } else if (h.type === 'log' && layer === 'mid') {
+        const R = h.R, cx = h.cx, cy = T.groundY(h.x0 - 4) * 0.5 + T.groundY(h.x1 + 4) * 0.5;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(cx - R - 3, cy - R - 3, 2 * R + 6, R + 6); ctx.clip();
+        const wood = !(theme === 'canyon' || theme === 'volcano' || theme === 'snow');
+        if (wood) {
+          ctx.fillStyle = art.trunk[0];
+          ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill();
+          ctx.fillStyle = mixCss(art.trunk[1], '#e8c48c', 0.35);
+          ctx.beginPath(); ctx.arc(cx, cy, R - 3, 0, TAU); ctx.fill();
+          ctx.strokeStyle = css(art.trunk[0], 0.5); ctx.lineWidth = 1.2;
+          for (const k of [0.68, 0.42, 0.18]) { ctx.beginPath(); ctx.arc(cx + 0.5, cy - 0.5, (R - 3) * k, 0, TAU); ctx.stroke(); }
+        } else {
+          ctx.fillStyle = art.rock[1];
+          ctx.beginPath(); ctx.ellipse(cx, cy, R + 2, R, 0, 0, TAU); ctx.fill();
+          ctx.fillStyle = art.rock[0];
+          ctx.beginPath(); ctx.ellipse(cx - 2, cy - 2, R - 1, R - 3, 0, 0, TAU); ctx.fill();
+          ctx.fillStyle = css(art.rock[2], 0.7);
+          ctx.beginPath(); ctx.ellipse(cx - R * 0.35, cy - R * 0.6, R * 0.35, R * 0.18, -0.3, 0, TAU); ctx.fill();
+          if (art.snowy) {
+            ctx.fillStyle = '#f4f8ff';
+            ctx.beginPath(); ctx.ellipse(cx, cy - R + 3, R * 0.8, 5, 0, 0, TAU); ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
+    }
+  };
+  const mixCss = (a, b, t) => css(mix(a, b, t));
+
   // Touceiras e flores junto à pista (na frente da borda)
   Sc.drawTrackEdge = (ctx, T, A, cam) => {
     const SEG = T.SEG;
