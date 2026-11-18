@@ -59,17 +59,17 @@
   }, o, { count });
 
   const LEVELS = [
-    { name: 'Campos Verdes', theme: 'green', seed: 1337, length: 8000, diff: 0.55, time: 120, stars: 8, turbos: 3,
+    { name: 'Campos Verdes', theme: 'green', seed: 1337, length: 8000, diff: 0.55, time: 60, stars: 8, turbos: 3,
       obstacles: OBST({ log: 2, whoops: 1, gap: 1, roof: 1 }, { gapW: [130, 150] }) },
-    { name: 'Floresta de Outono', theme: 'autumn', seed: 2024, length: 9000, diff: 0.68, time: 135, stars: 8, turbos: 3,
+    { name: 'Floresta de Outono', theme: 'autumn', seed: 2024, length: 9000, diff: 0.68, time: 65, stars: 8, turbos: 3,
       obstacles: OBST({ log: 2, whoops: 1, gap: 2, roof: 1 }, { gapW: [140, 180], whoopH: 22, roofBump: 33 }) },
-    { name: 'Cânion Seco', theme: 'canyon', seed: 4242, length: 10000, diff: 0.8, time: 150, stars: 8, turbos: 3,
+    { name: 'Cânion Seco', theme: 'canyon', seed: 4242, length: 10000, diff: 0.8, time: 70, stars: 8, turbos: 3,
       obstacles: OBST({ log: 1, whoops: 2, gap: 2, roof: 2 }, { gapW: [160, 200], whoopH: 22, roofBump: 34 }) },
-    { name: 'Pico Nevado', theme: 'snow', seed: 9001, length: 12000, diff: 1.05, time: 180, stars: 8, turbos: 4, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.55, hillScale: 0.75,
+    { name: 'Pico Nevado', theme: 'snow', seed: 9001, length: 12000, diff: 1.05, time: 90, stars: 8, turbos: 4, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.55, hillScale: 0.75,
       obstacles: OBST({ log: 2, whoops: 2, gap: 2, roof: 2 }, { gapW: [170, 210], whoopH: 24, whoopN: 6, roofBump: 34, roofWhoops: 8 }) },
-    { name: 'Vale Vulcânico', theme: 'volcano', seed: 6661, length: 12500, diff: 1.12, time: 190, stars: 10, turbos: 4, rampScale: 0.78, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.75,
+    { name: 'Vale Vulcânico', theme: 'volcano', seed: 6661, length: 12500, diff: 1.12, time: 95, stars: 10, turbos: 4, rampScale: 0.78, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.75,
       obstacles: OBST({ log: 2, whoops: 2, gap: 3, roof: 2 }, { gapW: [170, 210], logR: 20, whoopH: 24, whoopN: 6, roofBump: 35, roofWhoops: 9 }) },
-    { name: 'Serra ao Luar', theme: 'night', seed: 7777, length: 13500, diff: 1.18, time: 205, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
+    { name: 'Serra ao Luar', theme: 'night', seed: 7777, length: 13500, diff: 1.18, time: 110, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
       obstacles: OBST({ log: 2, whoops: 2, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
   ];
 

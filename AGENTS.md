@@ -129,14 +129,14 @@ O terreno de cada fase é gerado por `buildLevel(idx)` a partir de uma semente (
 
 ```js
 const LEVELS = [
-  { name: 'Campos Verdes',      theme: 'green',   seed: 1337, length: 8000,  diff: 0.55, time: 120, stars: 8,  turbos: 3 },
-  { name: 'Floresta de Outono', theme: 'autumn',  seed: 2024, length: 9000,  diff: 0.68, time: 135, stars: 8,  turbos: 3 },
-  { name: 'Cânion Seco',        theme: 'canyon',  seed: 4242, length: 10000, diff: 0.8,  time: 150, stars: 8,  turbos: 3 },
-  { name: 'Pico Nevado',        theme: 'snow',    seed: 9001, length: 12000, diff: 1.05, time: 180, stars: 8,  turbos: 4,
+  { name: 'Campos Verdes',      theme: 'green',   seed: 1337, length: 8000,  diff: 0.55, time: 60,  stars: 8,  turbos: 3 },
+  { name: 'Floresta de Outono', theme: 'autumn',  seed: 2024, length: 9000,  diff: 0.68, time: 65,  stars: 8,  turbos: 3 },
+  { name: 'Cânion Seco',        theme: 'canyon',  seed: 4242, length: 10000, diff: 0.8,  time: 70,  stars: 8,  turbos: 3 },
+  { name: 'Pico Nevado',        theme: 'snow',    seed: 9001, length: 12000, diff: 1.05, time: 90,  stars: 8,  turbos: 4,
     rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.55, hillScale: 0.75 },
-  { name: 'Vale Vulcânico',     theme: 'volcano', seed: 6661, length: 12500, diff: 1.12, time: 190, stars: 10, turbos: 4,
+  { name: 'Vale Vulcânico',     theme: 'volcano', seed: 6661, length: 12500, diff: 1.12, time: 95,  stars: 10, turbos: 4,
     rampScale: 0.78, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.75 },
-  { name: 'Serra ao Luar',      theme: 'night',   seed: 7777, length: 13500, diff: 1.18, time: 205, stars: 10, turbos: 5,
+  { name: 'Serra ao Luar',      theme: 'night',   seed: 7777, length: 13500, diff: 1.18, time: 110, stars: 10, turbos: 5,
     rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9 },
 ];
 ```
@@ -245,6 +245,7 @@ Pool fixo de 420 partículas, sem criar objetos durante o jogo: poeira, terra e 
 6. **Correções visuais**: lava das montanhas virou crateras e rios (antes parecia chuva); linha vertical de luz nas montanhas removida; transição neve/rocha sem pontilhado.
 7. **Nova física**: o modelo de 3 pontos foi trocado por `physics.js` (suspensão real, tração limitada pela carga, curva de motor, arrasto v², giro com inércia, aterrissagens absorvidas, passo fixo e interpolação). Junto vieram a correção do nome do mortal (estava invertido) e o renascimento em trecho plano. Depois, a dificuldade das fases 5 e 6 foi recalibrada.
 8. **Obstáculos** (sem mexer na física): fendas, túneis de teto baixo, troncos/pedras e costelas em todas as fases, com placas de aviso, dicas na tela de início e mensagens de queda próprias. Motivo: só acelerar e usar turbo bastava para passar de fase.
+9. **Tempo apertado**: o limite das fases caiu de 120–205 s para 60–110 s.
 
 ## 10. Como testar
 
@@ -290,7 +291,7 @@ Verificações recomendadas depois de mexer na física: moto parada não escorre
 - **Não há teste com jogador humano**: todos os testes foram automáticos. A sensação de aceleração, suspensão e controle no ar deve ser avaliada jogando e ajustada em `PHYS`.
 - Não existe uma referência de "hash" da nova física. Antes de mexer nela, registre uma simulação fixa (sequência de teclas → posições) para conferir depois.
 - Os obstáculos foram calibrados só com pilotos automáticos; vale jogar e ajustar `gapW`, `roofGap`, `roofBump` e `whoopH` pela sensação real.
-- O tempo limite das fases continua folgado (2 a 3 minutos para percursos de 15 a 30 s); dá para apertar se quiser mais pressão.
+- O tempo limite foi apertado para 60–110 s, cerca de 3 vezes o tempo de um piloto automático cauteloso (14–34 s). Cada queda custa ~1,7 s e a volta ao último checkpoint; se ficar difícil demais para pessoas, aumente `time` em `LEVELS`.
 - GitHub Pages ainda não foi ativado; para isso, ajuste o `index.html` como descrito na seção 2.
 - O desenho do chassi segue a linha entre as rodas, não o ângulo real do chassi da física; a diferença é pequena, mas um refino possível é desenhar o chassi pelo referencial `Cr → Cf`.
 - Sem efeitos sonoros de aterrissagem e suspensão; o áudio é todo sintetizado.
