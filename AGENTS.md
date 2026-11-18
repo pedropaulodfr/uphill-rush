@@ -26,7 +26,8 @@ Em telas de toque aparecem botões na tela (◀ ▶ T ▼ ▲).
 
 ### Regras
 
-- 6 fases, 4 vidas, tempo limite por fase.
+- 10 fases, 4 vidas, tempo limite por fase.
+- Dois veículos à escolha no menu: **moto** (rápida e ágil no ar) e **quadriciclo** (estável, com mais tração e menos velocidade final).
 - Estrelas (+100), cápsulas de turbo (+50 e +1 barra), checkpoints (+200) em 33% e 66% da pista.
 - Mortais no ar: +500 × (número de voltas)². Saltos acima de 0,75 s também pontuam.
 - Ao terminar a fase: bônus de tempo (10 por segundo restante) e +1000 se pegar todas as estrelas.
@@ -94,7 +95,8 @@ Implementação própria, sem biblioteca, com partículas e restrições resolvi
 ### API
 
 ```js
-Serra.Physics.createBike(x, T)          // cria a moto apoiada no terreno T na posição x
+Serra.Physics.createBike(x, T, cfg)     // cria o veículo apoiado no terreno T na posição x (cfg padrão = PHYS)
+Serra.Physics.VEHICLES                  // { moto: PHYS, quad: PHYS com ajustes } — cfg de cada veículo
 Serra.Physics.step(bike, input, dt, T)  // input = { throttle, brake, lean (-1..1), turbo }
 Serra.Physics.crashCheck(bike)          // 'cabeça' | 'corpo' | 'impacto' | 'pouso' | null
 Serra.Physics.view(bike, alpha)         // vista interpolada para desenho/câmera
@@ -103,6 +105,8 @@ Serra.Physics.groundY(T, x)
 ```
 
 O terreno `T` precisa de `{ ys: Float32Array, n, SEG }` (altura a cada `SEG` px; y cresce para baixo).
+
+Cada veículo guarda o próprio conjunto de parâmetros em `bike.cfg` e o tipo em `bike.kind` (`'moto'` ou `'quad'`); `step` e `crashCheck` leem `bike.cfg`, nunca `PHYS` direto.
 
 Campos da moto usados pelo resto do jogo: `R`, `F`, `H` (com `x, y, px, py`, sendo `px/py` a posição do passo anterior), `gR`/`gF` (rodas no chão), `vt` (velocidade da roda traseira em px por passo, usada pelo som), `speed` (px/s), `spinR`/`spinF`, `susp`/`suspR`/`suspF` (compressão 0..1), `omega`, `airT`, `airRot`, `airVy`, `lastA`, `touchdown`, `landingMismatch`.
 
@@ -122,6 +126,12 @@ Campos da moto usados pelo resto do jogo: `R`, `F`, `H` (com `x, y, px, py`, sen
 Comportamento medido com esses valores (terreno plano): 0→300 px/s em 0,28 s, 0→600 em 0,72 s, 0→900 em 1,8 s; velocidade máxima ≈ 984 px/s; frenagem de 984 a 0 em 0,63 s e 301 px; suspensão assenta ≈ 37% do curso em repouso. Quedas de 600 e 1200 px são absorvidas; de 2000 px derrubam.
 
 **Determinismo**: com as mesmas teclas, o resultado é idêntico em qualquer FPS (testado em 30, 60, 144, 240 e FPS irregular). A única aleatoriedade (`Math.random`) está nas partículas e no balanço do piloto em queda, que não afetam a física.
+
+### Quadriciclo (`VEHICLES.quad`)
+
+Parte dos valores da moto (`merge(PHYS, {...})`) e muda só: massas maiores, entre-eixos de 74 px (moto: 64), piloto mais alto (cabeça em -56), suspensão mais dura e mais amortecida, `accel` 1200 / `maxSpeed` 980 / turbo 1500 e 1350, `tireGrip` 1,5, mais arrasto, giro mais lento (`airTorque` 9,5, `groundTorque` 6,5, `maxSpin` 6,2, `airDamping` 0,8) e pouso mais tolerante (`hardLanding` 2100, `badLandingAngle` 1,2). A moto continua usando `PHYS` sem nenhuma mudança. O raio das rodas é o mesmo (17), porque o jogo usa `WHEEL_R` fixo.
+
+Calibração: com os pilotos automáticos, o quadriciclo termina as 10 fases quando o piloto respeita os obstáculos e não termina nenhuma só com acelerador (com ou sem turbo). Com velocidade final maior, ele passava os túneis a toda; com aceleração menor, não chegava rápido às fendas.
 
 ## 6. Fases e terreno (`game.js`)
 
@@ -154,6 +164,17 @@ Ajustes opcionais por fase (sem eles, a fase é gerada exatamente como antes):
 | `hillScale` | suaviza o sobe-e-desce das colinas sem mudar o desnível total |
 
 Cuidado: a sequência de chamadas a `r()` dentro de `buildLevel` define a pista inteira. Não insira nem remova chamadas a `r()` antes da geração de rampas, estrelas e turbos, senão as fases mudam. Mudar só o conteúdo de `THEMES[...].deco` não altera a pista.
+
+Fases 7 a 10 (mesmos ajustes de terreno da fase 6, mais longas e com mais obstáculos):
+
+| Fase | Ambiente | Comprimento | Tempo | Obstáculos (tronco/costelas/fenda/túnel) |
+|---|---|---|---|---|
+| 7. Dunas Douradas | `dunes` | 14000 | 115 s | 2 / 3 / 3 / 3 |
+| 8. Pântano da Névoa | `swamp` | 14500 | 120 s | 3 / 2 / 4 / 3 |
+| 9. Geleira Azul | `glacier` | 15000 | 125 s | 2 / 3 / 4 / 4 (fendas mais estreitas, costelas mais baixas) |
+| 10. Serra do Pôr do Sol | `sunset` | 16000 | 135 s | 3 / 3 / 4 / 4 |
+
+Nem todos os obstáculos pedidos cabem: quando falta espaço entre os checkpoints, o excedente é descartado (ex.: a fase 9 fica com 10 de 13).
 
 Cada fase guarda `stars`, `turbos`, `cps` (checkpoints), `decor` (vegetação), `haz` (obstáculos), `finishX` e as referências `groundY` e `roofY`.
 
@@ -200,7 +221,7 @@ Toda a arte é gerada por código na hora do carregamento, uma vez por ambiente,
 
 ### Ambientes (`Serra.ART` em `sprites.js`)
 
-`green`, `autumn`, `canyon`, `snow`, `volcano`, `night`. Cada um define céu, sol (ou lua, com `night: true`), faixas de montanha (`far`, `mid`), linha de árvores, colinas, cores do solo e da grama, folhas, rochas, plantas de primeiro plano, cor da poeira e, quando houver, `weather` (`snow`, `leaves`, `embers`, `fireflies`), `tint` (filtro de cor multiplicativo) e `vignette` (intensidade da vinheta).
+`green`, `autumn`, `canyon`, `snow`, `volcano`, `night` e os derivados `dunes`, `swamp`, `glacier`, `sunset`. Os derivados são criados com `derive(base, mudanças)` logo depois de `S.ART = ART`: copiam um ambiente e trocam cores, clima e sementes. O campo `kit` diz qual conjunto de vegetação e detalhes usar (`steps()` em `sprites.js` escolhe as árvores por `kit`, não pelo nome), e o `THEMES` de `game.js` precisa listar só tipos de decoração que esse kit gera. Cada um define céu, sol (ou lua, com `night: true`), faixas de montanha (`far`, `mid`), linha de árvores, colinas, cores do solo e da grama, folhas, rochas, plantas de primeiro plano, cor da poeira e, quando houver, `weather` (`snow`, `leaves`, `embers`, `fireflies`), `tint` (filtro de cor multiplicativo) e `vignette` (intensidade da vinheta).
 
 Opções das faixas de montanha:
 
@@ -217,12 +238,13 @@ As faixas têm 2048 px de largura e se repetem sem emenda (ruído periódico).
 4. Vegetação da pista (`drawTrackDecor`), terreno com textura, camadas de solo, pedras, raízes, grama ou neve e lava (`drawTerrain`), itens (`drawItems`), partículas de trás, moto, touceiras na borda (`drawTrackEdge`), partículas da frente.
 5. Plantas desfocadas em primeiro plano (`drawForeground`), clima na frente, filtro de cor, reflexo do sol, linhas de velocidade do turbo e vinheta (`drawScreenFX`).
 
-### Moto e piloto (`bike.js`)
+### Moto, quadriciclo e piloto (`bike.js`)
 
 - `BikeRenderer.draw(ctx, vb, groundY, opts)` desenha no referencial da linha entre as rodas, deslocando o chassi pela compressão real da suspensão (`b.susp`).
 - O piloto tem articulações calculadas por cinemática inversa (`ik`), sempre com o joelho para a frente e o cotovelo para baixo. A pose depende de inclinação, salto, turbo e aterrissagem.
 - O capacete é desenhado ~14 px acima do ponto de colisão da cabeça. Perto do chão, o piloto se encolhe em direção ao ponto de colisão (`vis.reach`), para o capacete nunca atravessar o terreno.
 - Na queda, o piloto sai rolando (`vis.fly`), com colisão pela cabeça, quadril, mãos e pés (`TUMBLE_HULL`).
+- O quadriciclo tem desenho próprio (`drawQuad` e `drawQuadWheel`: para-lamas, bagageiro, farol, pneus balão e as rodas do lado de lá deslocadas). A pose do piloto usa o mesmo `riderJoints` com outros pontos de apoio (`RIGS.quad`: quadril, pé e mão).
 
 ### Partículas (`particles.js`)
 
@@ -231,8 +253,8 @@ Pool fixo de 420 partículas, sem criar objetos durante o jogo: poeira, terra e 
 ## 8. Interface
 
 - HUD em HTML/CSS (vidas como capacetes SVG, tempo, pontos, fase, minimapa em canvas, turbo, estrelas e barra de progresso com marcas de checkpoint). Só atualiza o DOM quando um valor muda (`hudCache`).
-- Telas em um card (`showCard`): carregamento, menu, seleção de fases, introdução da fase, pausa, fim de fase, fim de jogo.
-- **Progresso salvo no `localStorage`**: `serraTurbo.best` (recorde), `serraTurbo.unlocked` (fases liberadas; completar uma fase libera a próxima) e `serraTurbo.muted`. Todo acesso está protegido por `try/catch`.
+- Telas em um card (`showCard`): carregamento, menu (com a escolha do veículo), seleção de fases (card largo, 5 colunas), introdução da fase, pausa, fim de fase, fim de jogo.
+- **Progresso salvo no `localStorage`**: `serraTurbo.best` (recorde), `serraTurbo.unlocked` (fases liberadas; completar uma fase libera a próxima), `serraTurbo.muted` e `serraTurbo.vehicle` (`moto` ou `quad`). Todo acesso está protegido por `try/catch`.
 - Áudio sintetizado com Web Audio (motor e efeitos), iniciado só depois da primeira interação.
 
 ## 9. Histórico do que foi feito
@@ -246,6 +268,7 @@ Pool fixo de 420 partículas, sem criar objetos durante o jogo: poeira, terra e 
 7. **Nova física**: o modelo de 3 pontos foi trocado por `physics.js` (suspensão real, tração limitada pela carga, curva de motor, arrasto v², giro com inércia, aterrissagens absorvidas, passo fixo e interpolação). Junto vieram a correção do nome do mortal (estava invertido) e o renascimento em trecho plano. Depois, a dificuldade das fases 5 e 6 foi recalibrada.
 8. **Obstáculos** (sem mexer na física): fendas, túneis de teto baixo, troncos/pedras e costelas em todas as fases, com placas de aviso, dicas na tela de início e mensagens de queda próprias. Motivo: só acelerar e usar turbo bastava para passar de fase.
 9. **Tempo apertado**: o limite das fases caiu de 120–205 s para 60–110 s.
+10. **Mais fases e quadriciclo**: fases 7 a 10 com quatro ambientes novos derivados dos existentes, e o quadriciclo como segundo veículo (escolha no menu, física própria em `VEHICLES.quad`, desenho próprio).
 
 ## 10. Como testar
 
@@ -275,7 +298,7 @@ Dicas que funcionaram:
 - Os testes que completam fases gravam `serraTurbo.best` e `serraTurbo.unlocked`; guarde e restaure esses valores, senão fica um recorde falso no navegador.
 - Depois de testes que completam fases, apague `localStorage['serraTurbo.unlocked']`, para não deixar progresso falso no navegador.
 
-Verificações recomendadas depois de mexer na física: moto parada não escorrega nem treme; nenhuma roda afunda no terreno; pousos não quicam; resultado igual com FPS diferentes; os dois pilotos automáticos completam as 6 fases.
+Verificações recomendadas depois de mexer na física: moto parada não escorrega nem treme; nenhuma roda afunda no terreno; pousos não quicam; resultado igual com FPS diferentes; o piloto experiente completa as 10 fases com os dois veículos.
 
 ## 11. Convenções
 

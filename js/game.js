@@ -50,6 +50,10 @@
     autumn: { deco: ['oak', 'bush', 'oak', 'rock', 'poplar', 'grass', 'oak'] },
     volcano: { deco: ['deadtree', 'rock', 'shrub', 'rock', 'deadtree'] },
     night: { deco: ['pine', 'oak', 'bush', 'pine', 'rock', 'grass'] },
+    dunes: { deco: ['shrub', 'rock', 'cactus', 'shrub', 'deadtree'] },
+    swamp: { deco: ['oak', 'bush', 'bush', 'grass', 'poplar', 'rock'] },
+    glacier: { deco: ['snowpine', 'rock', 'snowpine', 'deadtree', 'bush'] },
+    sunset: { deco: ['oak', 'poplar', 'bush', 'oak', 'rock', 'grass'] },
   };
 
   // Obstáculos de cada fase: quantos de cada tipo e o tamanho deles (ver addObstacles)
@@ -71,6 +75,14 @@
       obstacles: OBST({ log: 2, whoops: 2, gap: 3, roof: 2 }, { gapW: [170, 210], logR: 20, whoopH: 24, whoopN: 6, roofBump: 35, roofWhoops: 9 }) },
     { name: 'Serra ao Luar', theme: 'night', seed: 7777, length: 13500, diff: 1.18, time: 110, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
       obstacles: OBST({ log: 2, whoops: 2, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
+    { name: 'Dunas Douradas', theme: 'dunes', seed: 3131, length: 14000, diff: 1.15, time: 115, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.8, maxDown: 0.45, hillScale: 0.9,
+      obstacles: OBST({ log: 2, whoops: 3, gap: 3, roof: 3 }, { gapW: [180, 220], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
+    { name: 'Pântano da Névoa', theme: 'swamp', seed: 5150, length: 14500, diff: 1.2, time: 120, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.45, hillScale: 0.9,
+      obstacles: OBST({ log: 3, whoops: 2, gap: 4, roof: 3 }, { gapW: [180, 225], logR: 20, whoopH: 25, whoopN: 6, roofBump: 36, roofWhoops: 10 }) },
+    { name: 'Geleira Azul', theme: 'glacier', seed: 8282, length: 15000, diff: 1.22, time: 125, stars: 10, turbos: 5, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.45, hillScale: 0.85,
+      obstacles: OBST({ log: 2, whoops: 3, gap: 4, roof: 4 }, { gapW: [170, 205], logR: 20, whoopH: 23, whoopN: 6, roofBump: 37, roofWhoops: 11 }) },
+    { name: 'Serra do Pôr do Sol', theme: 'sunset', seed: 9999, length: 16000, diff: 1.25, time: 135, stars: 12, turbos: 6, rampScale: 0.75, dropScale: 2.2, maxGrade: 0.82, maxDown: 0.42, hillScale: 0.9,
+      obstacles: OBST({ log: 3, whoops: 3, gap: 4, roof: 4 }, { gapW: [190, 235], logR: 21, whoopH: 26, whoopN: 7, roofBump: 38, roofWhoops: 12 }) },
   ];
 
   let T = null; // dados da fase atual
@@ -302,7 +314,7 @@
   let vb = null; // vista interpolada da moto, usada só no desenho e na câmera
 
   function spawnBike(x) {
-    bike = Serra.Physics.createBike(x, T);
+    bike = Serra.Physics.createBike(x, T, Serra.Physics.VEHICLES[game.vehicle]);
     vb = Serra.Physics.view(bike, 1);
   }
 
@@ -386,6 +398,15 @@
   game.unlocked = 1;
   try { game.unlocked = clamp(parseInt(localStorage.getItem('serraTurbo.unlocked') || '1', 10) || 1, 1, LEVELS.length); } catch (e) { /* sem storage */ }
 
+  // veículo escolhido no menu: 'moto' ou 'quad'
+  game.vehicle = 'moto';
+  try { if (localStorage.getItem('serraTurbo.vehicle') === 'quad') game.vehicle = 'quad'; } catch (e) { /* sem storage */ }
+  function setVehicle(v) {
+    game.vehicle = v;
+    try { localStorage.setItem('serraTurbo.vehicle', v); } catch (e) { /* sem storage */ }
+    if (T) spawnBike(respawnX(game.lastCP));
+  }
+
   function unlockLevel(n) {
     if (n <= game.unlocked) return;
     game.unlocked = Math.min(n, LEVELS.length);
@@ -441,6 +462,7 @@
       </div>
       <p class="hint">Complete uma fase para liberar a próxima.</p>
     `, [{ label: 'Voltar', ghost: true, fn: showMenu }]);
+    $('card').classList.add('wide');
     document.querySelectorAll('.lvl-btn:not(.locked)').forEach((el) => {
       el.addEventListener('click', () => { initAudio(); hideCard(); startGame(Number(el.dataset.lvl)); });
     });
@@ -552,12 +574,21 @@
       : [{ label: 'Próxima fase', fn: () => { hideCard(); enterLevel(game.level + 1); } }]);
   }
 
+  const VEHICLE_INFO = [
+    { id: 'moto', name: 'Moto', desc: 'Rápida e ágil no ar' },
+    { id: 'quad', name: 'Quadriciclo', desc: 'Estável, com mais tração' },
+  ];
+
   function showMenu() {
     setState('menu');
     if (!T || T.idx !== 0) { loadLevel(0); }
     showCard(`
       <div class="sub">Motocross de montanha</div>
       <h1>SERRA TURBO</h1>
+      <div class="vehicles" role="radiogroup" aria-label="Veículo">
+        ${VEHICLE_INFO.map((v) => `<button type="button" class="veh${game.vehicle === v.id ? ' on' : ''}" data-veh="${v.id}" role="radio" aria-checked="${game.vehicle === v.id}">
+          <b>${v.name}</b><span>${v.desc}</span></button>`).join('')}
+      </div>
       <div class="keys">
         <kbd>↑ / W</kbd><span>Acelerar</span>
         <kbd>↓ / S</kbd><span>Frear e dar ré</span>
@@ -570,6 +601,13 @@
       ${game.best ? `<p class="hint">Recorde neste navegador: ${game.best}</p>` : ''}
     `, [{ label: 'Jogar', fn: () => { hideCard(); startGame(); } },
         { label: `Fases (${game.unlocked}/${LEVELS.length})`, ghost: true, fn: showLevelSelect }]);
+    document.querySelectorAll('.veh').forEach((el) => el.addEventListener('click', () => {
+      setVehicle(el.dataset.veh);
+      document.querySelectorAll('.veh').forEach((o) => {
+        const on = o === el;
+        o.classList.toggle('on', on); o.setAttribute('aria-checked', String(on));
+      });
+    }));
   }
 
   function togglePause() {
@@ -863,6 +901,7 @@
   let cardButtons = [];
   function showCard(html, buttons) {
     const card = $('card');
+    card.className = 'card';
     card.innerHTML = html + '<div class="btn-row"></div>';
     const row = card.querySelector('.btn-row');
     cardButtons = buttons;

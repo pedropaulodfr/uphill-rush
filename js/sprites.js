@@ -177,6 +177,61 @@
   };
   S.ART = ART;
 
+  // Ambientes derivados: partem de um ambiente existente (kit = vegetação e detalhes usados)
+  // e trocam só as cores e o clima
+  function derive(from, over) {
+    const out = Array.isArray(from) ? from.slice() : Object.assign({}, from);
+    for (const k in over) {
+      const v = over[k];
+      out[k] = v && typeof v === 'object' && !Array.isArray(v) && from[k] && typeof from[k] === 'object' ? derive(from[k], v) : v;
+    }
+    return out;
+  }
+  ART.dunes = derive(ART.canyon, {
+    kit: 'canyon',
+    sky: ['#3f8fd6', '#9fd2f2', '#fff3d6'], sun: [255, 246, 214], cloudShade: '#e2c8a4',
+    far: { seed: 71, layers: ['#f0cf9c', '#e2b980', '#f6dcae', '#d9a96c'], cap: '#fbe6c2', shadow: '#b98a5a', haze: '#f6e2c0' },
+    mid: { seed: 72, layers: ['#ecbf7c', '#d99c56', '#f2cf92', '#c98848'], cap: '#f8dca6', shadow: '#94592e', haze: '#f2d6aa' },
+    treeLine: { ground: ['#e8c084', '#c8955a'], haze: '#f4dcb4' },
+    hills: { top: '#f2d08e', bottom: '#cf9a58', speck: ['#fae0a8', '#b47c40'], haze: '#f6e0b8' },
+    dirt: { base: '#d09a5c', dark: '#a06a36', light: '#eec088', deep: '#6a4020', top: '#b47838' },
+    grass: ['#a08a3a', '#cfb45e', '#ecd88e'], tips: '#fbeebc', lip: '#86702a',
+    dust: [236, 200, 150], sparseGrass: true, treeCount: 70,
+  });
+  ART.swamp = derive(ART.green, {
+    kit: 'green',
+    sky: ['#3c5a5e', '#88a8a0', '#d6e2c8'], sun: [240, 246, 220], cloudShade: '#7e948e',
+    weather: 'fireflies', tint: 'rgba(60,100,80,0.16)', vignette: 0.45,
+    far: { seed: 81, lit: '#8ea49e', shadow: '#4e6662', snow: '#c8d8d0', snowShadow: '#8aa29a', snowLine: 0.85, haze: '#a8bcb2', hazeAmt: 0.4 },
+    mid: { seed: 82, lit: '#6e8a6a', shadow: '#2e4a3c', veg: '#2a4a30', vegLine: 0.7, haze: '#96ae9e', hazeAmt: 0.16 },
+    treeLine: { ground: ['#3e6440', '#24402a'], haze: '#90aa98' },
+    hills: { top: '#56804a', bottom: '#2c4a2c', speck: ['#6c9a54', '#22401e'], haze: '#9ab4a0' },
+    dirt: { base: '#5a4630', dark: '#3a2c1c', light: '#7a6244', deep: '#1e160c', top: '#2e2414' },
+    grass: ['#2a5a26', '#4a8034', '#7aaa4a'], tips: '#b4d47a', lip: '#1c4018',
+    leaves: { dark: '#1a3a1c', mid: '#2e5a2a', light: '#52803e', hi: '#8eb468' },
+    fg: { dark: '#0e2a14', mid: '#1e4a24', light: '#3e7a3a', tip: null },
+    dust: [150, 140, 110], treeCount: 320,
+  });
+  ART.glacier = derive(ART.snow, {
+    kit: 'snow',
+    sky: ['#34418c', '#b28ccc', '#ffd8c8'], sun: [255, 226, 210], cloudShade: '#b8a8d0', vignette: 0.3,
+    far: { seed: 91, lit: '#b6a8cc', shadow: '#5a5a8a', snow: '#fff6f4', snowShadow: '#a8a4d4', haze: '#d6c4e0' },
+    mid: { seed: 92, lit: '#9a9ec4', shadow: '#464c7a', snow: '#ffffff', snowShadow: '#a4aedc', veg: '#2c3e5a', haze: '#c4bcdc' },
+    treeLine: { ground: ['#eef0fc', '#b8bee6'], haze: '#ccc4e4' },
+    hills: { top: '#f8f8ff', bottom: '#c2c6ea', speck: ['#ffffff', '#a4a8d8'], haze: '#d8d0ec' },
+    dirt: { base: '#6e86b0', dark: '#4e6490', light: '#9ab4dc', deep: '#2e3c62', top: '#c4d8f2' },
+    dust: [236, 240, 255],
+  });
+  ART.sunset = derive(ART.autumn, {
+    kit: 'autumn',
+    sky: ['#2e2a6a', '#d8607e', '#ffc46a'], sun: [255, 214, 150], cloudShade: '#8a4a6a', cloudTop: '#f0a080', cloudHi: '#ffd6a0',
+    tint: 'rgba(255,140,90,0.14)',
+    far: { seed: 101, lit: '#b07a9a', shadow: '#4a3060', snow: '#ffd8c4', snowShadow: '#c08aa8', haze: '#d88a8a', hazeAmt: 0.36 },
+    mid: { seed: 102, lit: '#a0604e', shadow: '#40263a', veg: '#7a3a2a', haze: '#c47870', hazeAmt: 0.14 },
+    treeLine: { ground: ['#7a4a3a', '#4a2a2a'], haze: '#c08070' },
+    hills: { top: '#b0784a', bottom: '#6a3e2a', speck: ['#d09a5a', '#5a301e'], haze: '#d09078' },
+  });
+
   // ---------- Base dos sprites ----------
   function sprite(w, h, draw, ax, ay) {
     const c = canvas(w * SS, h * SS), x = c.getContext('2d');
@@ -826,7 +881,7 @@
     for (let px = 0; px <= Wt; px += 8) x.lineTo(px, top(px));
     x.lineTo(Wt, Ht); x.closePath(); x.fill();
     const items = [];
-    const count = art.treeCount || (art.snowy ? 240 : art === ART.canyon ? 120 : 300);
+    const count = art.treeCount || (art.snowy ? 240 : art.kit === 'canyon' || art === ART.canyon ? 120 : 300);
     for (let i = 0; i < count; i++) {
       const px = r() * Wt;
       items.push({ px, py: top(px) + 4 + r() * 40, sp: A.small[Math.floor(r() * A.small.length)], sc: 0.55 + r() * 0.5 });
@@ -920,6 +975,7 @@
 
   function steps(key) {
     const art = ART[key], A = { art, key };
+    const kit = art.kit || key;
     const k = key.length * 97 + ({ autumn: 501, night: 777 }[key] || 0);
     const S2 = (fn) => fn;
     return [A, [
@@ -929,7 +985,7 @@
       }),
       S2(() => {
         const D = (A.decor = {});
-        if (key === 'green') {
+        if (kit === 'green') {
           D.oak = [makeOak(art, 1, 130, 160), makeOak(art, 2, 150, 180), makeOak(art, 3, 112, 138)];
           D.poplar = [makePoplar(art, 4, 64, 170), makePoplar(art, 5, 58, 150)];
           D.bush = [makeBush(art, 6, 92, 56), makeBush(art, 7, 112, 64), makeBush(art, 8, 72, 46)];
@@ -938,7 +994,7 @@
           D.tree = D.oak;
           A.small = [makeOak(art, 21, 36, 46), makeOak(art, 22, 30, 40), makeOak(art, 23, 40, 50), makePoplar(art, 24, 16, 46), makePoplar(art, 25, 14, 40)];
           A.hillSprites = [D.oak[0], D.oak[1], D.oak[2], D.poplar[0], D.bush[0], D.bush[1]];
-        } else if (key === 'canyon') {
+        } else if (kit === 'canyon') {
           D.cactus = [makeCactus(art, 1, 46, 92), makeCactus(art, 2, 56, 112), makeCactus(art, 3, 40, 72)];
           D.shrub = [makeShrub(art, 4, 72, 42), makeShrub(art, 5, 56, 34)];
           D.deadtree = [makeDeadTree(art, 6, 110, 140), makeDeadTree(art, 7, 90, 118)];
@@ -946,7 +1002,7 @@
           D.bush = D.shrub;
           A.small = [makeShrub(art, 21, 26, 16), makeCactus(art, 22, 12, 28), makeShrub(art, 23, 20, 12), makeRock(art, 24, 24, 12)];
           A.hillSprites = [D.cactus[0], D.cactus[1], D.shrub[0], D.shrub[1], D.rock[2], D.deadtree[1]];
-        } else if (key === 'autumn') {
+        } else if (kit === 'autumn') {
           const alt = art.leavesAlt.map((L) => Object.assign({}, art, { leaves: L }));
           D.oak = [makeOak(art, 1, 130, 160), makeOak(alt[0], 2, 150, 180), makeOak(alt[1], 3, 112, 138), makeOak(alt[0], 4, 140, 168), makeOak(alt[2], 5, 120, 150)];
           D.poplar = [makePoplar(alt[1], 6, 64, 170), makePoplar(art, 7, 58, 150)];
@@ -955,14 +1011,14 @@
           D.grass = [makeGrassClump(art, 14, 46, 26, false), makeGrassClump(art, 15, 38, 22, false)];
           A.small = [makeOak(art, 21, 36, 46), makeOak(alt[0], 22, 30, 40), makeOak(alt[1], 23, 40, 50), makePoplar(alt[1], 24, 16, 46), makeOak(alt[2], 25, 34, 44)];
           A.hillSprites = [D.oak[0], D.oak[1], D.oak[2], D.oak[4], D.poplar[0], D.bush[1]];
-        } else if (key === 'volcano') {
+        } else if (kit === 'volcano') {
           D.deadtree = [makeDeadTree(art, 1, 110, 140), makeDeadTree(art, 2, 90, 118), makeDeadTree(art, 3, 70, 92)];
           D.rock = [makeRock(art, 4, 92, 52), makeRock(art, 5, 124, 66), makeRock(art, 6, 70, 40)];
           D.shrub = [makeShrub(art, 7, 64, 36), makeShrub(art, 8, 50, 28)];
           D.bush = D.shrub;
           A.small = [makeDeadTree(art, 21, 28, 38), makeRock(art, 22, 26, 14), makeShrub(art, 23, 20, 12), makeDeadTree(art, 24, 22, 30)];
           A.hillSprites = [D.deadtree[0], D.deadtree[2], D.rock[0], D.rock[2], D.shrub[0]];
-        } else if (key === 'night') {
+        } else if (kit === 'night') {
           D.pine = [makePine(art, 1, 70, 150, false), makePine(art, 2, 82, 176, false), makePine(art, 3, 58, 122, false), makePine(art, 4, 96, 200, false)];
           D.oak = [makeOak(art, 5, 130, 160), makeOak(art, 6, 112, 138)];
           D.bush = [makeBush(art, 7, 92, 56), makeBush(art, 8, 72, 46)];
@@ -979,12 +1035,12 @@
           A.small = [makePine(art, 21, 22, 50, true), makePine(art, 22, 18, 42, true), makePine(art, 23, 26, 58, true), makePine(art, 24, 14, 34, false)];
           A.hillSprites = [D.snowpine[0], D.snowpine[1], D.snowpine[2], D.snowpine[3], D.rock[1], D.deadtree[1]];
         }
-        A.clumps = key === 'snow'
+        A.clumps = kit === 'snow'
           ? [makeGrassClump(art, 31, 34, 14, false), makeGrassClump(art, 32, 28, 12, false)]
           : [makeGrassClump(art, 31, 40, 22, true), makeGrassClump(art, 32, 34, 18, false), makeGrassClump(art, 33, 46, 26, true)];
         const stoneArt = Object.assign({}, art, { moss: null });
         A.stones = [makeRock(stoneArt, 41, 26, 16), makeRock(stoneArt, 42, 34, 20), makeRock(stoneArt, 43, 20, 12), makeRock(stoneArt, 44, 40, 22)];
-        A.fg = [0, 1, 2].map((i) => makeFern(art, 51 + i, 190 - i * 20, 140 - i * 12, key === 'canyon' || key === 'volcano'));
+        A.fg = [0, 1, 2].map((i) => makeFern(art, 51 + i, 190 - i * 20, 140 - i * 12, kit === 'canyon' || kit === 'volcano'));
       }),
       S2(() => { A.far = art.far.mesa ? mesaStrip(art.far) : mountainStrip(art.far); }),
       S2(() => { A.mid = art.mid.mesa ? mesaStrip(art.mid) : mountainStrip(art.mid); }),

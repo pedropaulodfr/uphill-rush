@@ -1,6 +1,6 @@
 # Serra Turbo
 
-Jogo 2D de motocross para navegador, feito em HTML, CSS e JavaScript puro. Leve a moto até a bandeira de chegada de cada fase, dentro do tempo, sem bater o capacete no chão.
+Jogo 2D de motocross para navegador, feito em HTML, CSS e JavaScript puro. Leve a moto ou o quadriciclo até a bandeira de chegada de cada fase, dentro do tempo, sem bater o capacete no chão.
 
 ## 🎮 [Jogar agora](https://pedropaulodfr.github.io/uphill-rush/)
 
@@ -22,7 +22,8 @@ No celular aparecem botões de toque na tela.
 
 ## O jogo
 
-- 6 fases com ambientes diferentes: campo, floresta de outono, cânion, neve, vulcão e serra à noite.
+- Escolha entre **moto** (rápida e ágil no ar) e **quadriciclo** (estável, com mais tração).
+- 10 fases com ambientes diferentes: campo, floresta de outono, cânion, neve, vulcão, serra à noite, dunas, pântano, geleira e pôr do sol.
 - Obstáculos em todas as fases: fendas (chegue rápido), túneis de teto baixo (entre devagar), troncos e costelas.
 - Estrelas, cápsulas de turbo, checkpoints e pontos extras por mortais no ar.
 - 4 vidas e tempo limite por fase.

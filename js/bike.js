@@ -206,13 +206,20 @@
   // pontos do piloto caído (no referencial do corpo) e o raio de cada um
   const TUMBLE_HULL = [[5, -17, 10], [-4, 6, 7], [2, 24, 4], [-15, 23, 4], [19, 4, 4], [-15, -17, 4]];
 
+  // Pontos de apoio do piloto em cada veículo (quadril em repouso, pé e mão em relação à frente)
+  const RIGS = {
+    moto: { hip: [-18, -42], foot: [-3, -13.5], hand: [-18, -47] },
+    quad: { hip: [-15, -44], foot: [-1, -15], hand: [-21, -45] },
+  };
+  let rig = RIGS.moto;
+
   // reach: 1 = capacete na postura normal (acima do ponto de colisão); 0 = colado no ponto de colisão
   function riderJoints(Hl, half, reach) {
     const st = vis.stand, ln = vis.lean, cr = vis.crouch, tk = vis.tuck;
     const bob = Math.sin(vis.bob) * 0.6 * (1 - vis.air);
     const hip = [
-      -18 + st * 8 - ln * 6 + tk * 3,
-      -42 - st * 10 + cr * 6 + Math.abs(ln) * 1.5 + bob,
+      rig.hip[0] + st * 8 - ln * 6 + tk * 3,
+      rig.hip[1] - st * 10 + cr * 6 + Math.abs(ln) * 1.5 + bob,
     ];
     const head = [
       Hl[0] + (6 + st * 3 - ln * 7 + tk * 7) * reach,
@@ -220,8 +227,8 @@
     ];
     const vx = hip[0] - head[0], vy = hip[1] - head[1], vl = Math.hypot(vx, vy) || 1;
     const shoulder = [head[0] + (vx / vl) * 9.5, head[1] + (vy / vl) * 9.5];
-    const foot = [-3, -13.5];
-    const hand = [half - 18, -47];
+    const foot = rig.foot.slice();
+    const hand = [half + rig.hand[0], rig.hand[1]];
     const knee = ik(hip[0], hip[1], foot[0], foot[1], THIGH, SHIN, 1, -0.35);
     const elbow = ik(shoulder[0], shoulder[1], hand[0], hand[1], UARM, FARM, -0.2, 1);
     return { hip, head, shoulder, foot, hand, knee, elbow };
@@ -373,6 +380,7 @@
 
   // ---------- Moto completa ----------
   B.draw = (ctx, b, groundY, opts) => {
+    rig = RIGS[b.kind] || RIGS.moto;
     const a = Math.atan2(b.F.y - b.R.y, b.F.x - b.R.x);
     const cx = (b.R.x + b.F.x) / 2, cy = (b.R.y + b.F.y) / 2;
     const half = Math.hypot(b.F.x - b.R.x, b.F.y - b.R.y) / 2;
@@ -419,6 +427,16 @@
     ctx.save(); ctx.translate(0, cmp);
     if (riding) { drawArm(ctx, jf, true); drawLeg(ctx, jf, true); }
     ctx.restore();
+
+    if (b.kind === 'quad') {
+      drawQuad(ctx, b, half, R, cmp, a, cx, cy);
+      ctx.save(); ctx.translate(0, cmp);
+      if (riding) drawRider(ctx, j);
+      ctx.restore();
+      ctx.restore();
+      if (vis.fly) drawTumble(ctx, vis.fly, opts.clock);
+      return;
+    }
 
     drawWheel(ctx, -half, 0, R, b.spinR, vis.wR, false);
     drawWheel(ctx, half, 0, R, b.spinF, vis.wF, true);
@@ -577,6 +595,112 @@
 
     if (vis.fly) drawTumble(ctx, vis.fly, opts.clock);
   };
+
+  // ---------- Quadriciclo ----------
+  // Pneu balão: cravos largos e aro pequeno; far = roda do lado de lá (mais escura)
+  function drawQuadWheel(ctx, x, y, R, spin, far) {
+    ctx.save();
+    ctx.translate(x, y);
+    const tg = ctx.createRadialGradient(-4, -5, R * 0.3, 0, 0, R + 2);
+    tg.addColorStop(0, far ? '#2a2d33' : '#474c55'); tg.addColorStop(0.7, far ? '#141519' : '#1f2126'); tg.addColorStop(1, '#0a0b0d');
+    ctx.fillStyle = tg;
+    ctx.beginPath(); ctx.arc(0, 0, R + 0.5, 0, TAU); ctx.fill();
+    ctx.save(); ctx.rotate(spin);
+    ctx.fillStyle = '#0f1013';
+    for (let i = 0; i < 12; i++) {
+      ctx.rotate(TAU / 12);
+      ctx.beginPath(); ctx.moveTo(-3.6, -R + 1); ctx.lineTo(3.6, -R + 1); ctx.lineTo(3, -R - 2.6); ctx.lineTo(-3, -R - 2.6); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    if (!far) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(0, 0, R - 2.5, -1.6, -0.2); ctx.stroke();
+    }
+    const rimR = R * 0.52;
+    ctx.fillStyle = far ? '#5a1a10' : lgrad(ctx, 0, -rimR, 0, rimR, [C.redL, C.red, C.redD]);
+    ctx.beginPath(); ctx.arc(0, 0, rimR, 0, TAU); ctx.fill();
+    ctx.strokeStyle = C.line; ctx.lineWidth = 0.9; ctx.stroke();
+    ctx.save(); ctx.rotate(spin);
+    ctx.fillStyle = far ? '#3a3f47' : C.silver;
+    for (let i = 0; i < 5; i++) { const a = (i / 5) * TAU; ctx.beginPath(); ctx.arc(Math.cos(a) * rimR * 0.55, Math.sin(a) * rimR * 0.55, 1.2, 0, TAU); ctx.fill(); }
+    ctx.restore();
+    ctx.fillStyle = far ? '#22252a' : C.blackL; ctx.beginPath(); ctx.arc(0, 0, 2.6, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+
+  const QUAD_REAR = (h) => [-h - 21, -14, -h - 17, -27, -h - 4, -33, -h + 14, -33, -h + 22, -26, -h + 24, -20, -h + 14, -24, -h - 4, -25, -h - 15, -12];
+  const QUAD_FRONT = (h) => [h - 22, -24, h - 14, -32, h + 2, -34, h + 16, -29, h + 22, -16, h + 15, -18, h + 10, -25, h - 6, -27, h - 16, -21];
+
+  function drawQuad(ctx, b, half, R, cmp, a, cx, cy) {
+    // rodas do lado de lá, um pouco deslocadas, dão a ideia de quatro rodas
+    drawQuadWheel(ctx, -half + 4, -3, R, b.spinR, true);
+    drawQuadWheel(ctx, half + 4, -3, R, b.spinF, true);
+
+    ctx.save();
+    ctx.translate(0, cmp);
+    const RA = [-half, -cmp], FA = [half, -cmp];
+    // braços de suspensão e amortecedores (acompanham a compressão)
+    for (const [A, top] of [[RA, [-18, -24]], [FA, [16, -26]]]) {
+      limb(ctx, top[0], top[1] + 8, A[0], A[1], 4, 3.4, lgrad(ctx, 0, -10, 0, 0, [C.silverL, C.silverD]));
+      limb(ctx, top[0], top[1], A[0] + (top[0] - A[0]) * 0.25, A[1] - 6, 4.6, 4, C.accent);
+    }
+    // chassi e protetor de baixo
+    path(ctx, [-30, -12, 28, -12, 32, -6, -26, -5]);
+    fillLine(ctx, lgrad(ctx, 0, -12, 0, -5, ['#6b727d', '#3a3f47']), 0.9);
+    // motor
+    path(ctx, [-12, -27, 10, -27, 12, -12, -10, -11]);
+    fillLine(ctx, lgrad(ctx, 0, -27, 0, -11, ['#8a929d', '#4d535d', '#2a2e35']), 0.9);
+    ctx.strokeStyle = '#1b1e22'; ctx.lineWidth = 0.8;
+    for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.moveTo(-10, -24 + k * 3.2); ctx.lineTo(9, -24 + k * 3.2); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(-2, -16, 4, 0, TAU);
+    fillLine(ctx, lgrad(ctx, 0, -20, 0, -12, ['#e1e6eb', '#8e97a2']), 0.8);
+    // escapamento saindo por trás
+    ctx.lineWidth = 3.4; ctx.strokeStyle = lgrad(ctx, 0, -26, 0, -12, ['#f2f4f6', '#a5aeb8', '#6a737e']);
+    ctx.beginPath(); ctx.moveTo(-8, -14); ctx.bezierCurveTo(-20, -14, -26, -18, -34, -22); ctx.stroke();
+    ctx.save(); ctx.translate(-36, -23); ctx.rotate(-0.3);
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(-14, -3, 15, 6, 2.6); else ctx.rect(-14, -3, 15, 6);
+    fillLine(ctx, lgrad(ctx, 0, -3, 0, 3, ['#ffffff', '#c1c9d2', '#6c7580']), 0.9);
+    ctx.restore();
+    {
+      const ex = -36 + Math.cos(-0.3) * -14, ey = -23 + Math.sin(-0.3) * -14;
+      vis.exhaust.x = cx + (ex * Math.cos(a) - (ey + cmp) * Math.sin(a));
+      vis.exhaust.y = cy + (ex * Math.sin(a) + (ey + cmp) * Math.cos(a));
+      vis.exhaust.a = a - 0.3;
+    }
+    // para-lama traseiro com bagageiro
+    path(ctx, QUAD_REAR(half));
+    fillLine(ctx, lgrad(ctx, 0, -34, 0, -12, [C.redL, C.red, C.redD]));
+    ctx.strokeStyle = C.blackL; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-half - 16, -35); ctx.lineTo(-half + 12, -35); ctx.stroke();
+    for (const x of [-half - 12, -half - 2, -half + 8]) { ctx.beginPath(); ctx.moveTo(x, -35); ctx.lineTo(x, -32); ctx.stroke(); }
+    // para-lama dianteiro com faixa branca e farol
+    path(ctx, QUAD_FRONT(half));
+    fillLine(ctx, lgrad(ctx, 0, -35, 0, -16, [C.redL, C.red, C.redD]));
+    ctx.save(); path(ctx, QUAD_FRONT(half)); ctx.clip();
+    ctx.fillStyle = C.white; path(ctx, [half - 16, -30, half + 12, -31, half + 13, -28, half - 14, -27]); ctx.fill();
+    ctx.restore();
+    ctx.beginPath(); ctx.ellipse(half + 15, -27, 3.4, 2.6, -0.5, 0, TAU);
+    fillLine(ctx, lgrad(ctx, half + 12, -30, half + 18, -24, ['#fffbe0', '#ffd24a']), 0.8);
+    // carenagem central e banco
+    path(ctx, [-14, -30, 4, -36, 18, -35, 22, -28, 12, -25, -12, -26]);
+    fillLine(ctx, lgrad(ctx, 0, -37, 0, -25, [C.redL, C.red, C.redD]));
+    ctx.fillStyle = C.accent; path(ctx, [-6, -31, 12, -33.5, 13, -31, -5, -28.5]); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-34, -36); ctx.quadraticCurveTo(-18, -40, -2, -38.5); ctx.lineTo(4, -36);
+    ctx.lineTo(2, -33); ctx.quadraticCurveTo(-16, -33, -33, -31.5); ctx.closePath();
+    fillLine(ctx, lgrad(ctx, 0, -40, 0, -31, ['#4a505a', C.black]), 1);
+    // coluna de direção e guidão
+    seg(ctx, 14, -32, half - 20, -44, 3, C.blackL);
+    seg(ctx, half - 23, -44.5, half - 17, -46, 4, C.black);
+    ctx.fillStyle = C.red; ctx.fillRect(half - 24, -45.5, 3.5, 2.4);
+    // pedaleira
+    ctx.fillStyle = C.silverD; ctx.fillRect(-7, -15.8, 12, 2.2);
+    ctx.restore();
+
+    drawQuadWheel(ctx, -half, 0, R, b.spinR, false);
+    drawQuadWheel(ctx, half, 0, R, b.spinF, false);
+  }
 
   // Piloto caído/rolando depois da queda
   function drawTumble(ctx, f, clock) {

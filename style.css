@@ -338,8 +338,8 @@ html, body {
 
 .keys {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 14px;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 6px 10px;
   text-align: left;
   font-size: 14px;
   margin: 2px auto 0;
@@ -383,6 +383,32 @@ html, body {
   background: linear-gradient(180deg, #d8ff8a, var(--gas) 45%, #2f8f22);
   transition: transform 0.2s ease-out;
 }
+
+/* Seleção de fases em tela larga: 5 colunas */
+.card.wide { width: 720px; }
+.card.wide .levels { grid-template-columns: repeat(5, 1fr); }
+
+/* Escolha do veículo no menu */
+.vehicles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.veh {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 8px 8px;
+  border: 2px solid #cdb37a;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--card-ink);
+  font-family: var(--font-body);
+  cursor: pointer;
+  box-shadow: 0 3px 0 #cdb37a;
+}
+.veh b { font-family: var(--font-display); font-weight: 400; font-size: 19px; line-height: 1.1; }
+.veh span { font-size: 12px; font-weight: 800; color: #8a6d35; }
+.veh.on { border-color: var(--card-accent); background: #ffe9d6; box-shadow: 0 3px 0 #b8280f; }
+.veh.on b { color: var(--card-accent); }
+.veh:focus-visible { outline: 3px solid var(--turbo); outline-offset: 2px; }
 
 /* Seleção de fases: cada botão mostra as cores do céu e do solo do ambiente */
 .levels {

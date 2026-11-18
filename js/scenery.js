@@ -325,6 +325,8 @@
     green: ['#8ad8f4', '#2d7fb5', '#14456e'], autumn: ['#93cfe0', '#2f6f96', '#163a58'],
     night: ['#7fb2dc', '#1d4470', '#0b1e38'], snow: ['#e2f4ff', '#5fa9d8', '#24557f'],
     canyon: ['#d2ad72', '#7a5530', '#3d2614'], volcano: ['#ffe08a', '#ff7a1a', '#a3180a'],
+    dunes: ['#e8c890', '#9a7040', '#4a3018'], swamp: ['#9ab87a', '#3e5a2e', '#1a2a14'],
+    glacier: ['#eef0ff', '#6a80d0', '#2a3470'], sunset: ['#ffc890', '#a04a5a', '#3a1a3a'],
   };
 
   function drawSign(ctx, x, gy, art) {
@@ -353,7 +355,7 @@
   // layer 'back': sombra dentro do túnel; 'mid': rocha, troncos e placas; 'front': líquido das fendas
   Sc.drawHazards = (ctx, T, A, cam, clock, layer) => {
     if (!T.haz || !T.haz.length) return;
-    const art = A.art, theme = T.L.theme;
+    const art = A.art, theme = T.L.theme, kit = art.kit || theme;
     for (const h of T.haz) {
       if (h.x1 + 160 < cam.x || h.x0 - 260 > cam.x + W) continue;
 
@@ -436,7 +438,7 @@
         const R = h.R, cx = h.cx, cy = T.groundY(h.x0 - 4) * 0.5 + T.groundY(h.x1 + 4) * 0.5;
         ctx.save();
         ctx.beginPath(); ctx.rect(cx - R - 3, cy - R - 3, 2 * R + 6, R + 6); ctx.clip();
-        const wood = !(theme === 'canyon' || theme === 'volcano' || theme === 'snow');
+        const wood = !(kit === 'canyon' || kit === 'volcano' || kit === 'snow');
         if (wood) {
           ctx.fillStyle = art.trunk[0];
           ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill();

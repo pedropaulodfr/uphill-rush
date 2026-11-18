@@ -57,6 +57,36 @@
     },
   };
 
+  // ---------- Veículos ----------
+  // O quadriciclo parte dos valores da moto e muda só o necessário: mais pesado, mais longo e
+  // mais baixo, com mais aderência, menos velocidade final e giro no ar mais lento
+  function merge(base, over) {
+    const out = Array.isArray(base) ? base.slice() : Object.assign({}, base);
+    for (const k in over) {
+      const v = over[k];
+      out[k] = v && typeof v === 'object' && !Array.isArray(v) && base[k] ? merge(base[k], v) : v;
+    }
+    return out;
+  }
+  const VEHICLES = {
+    moto: Object.assign(PHYS, { kind: 'moto' }),
+    quad: merge(PHYS, {
+      kind: 'quad',
+      mass: { wheelR: 1.4, wheelF: 1.2, chassisRear: 2.8, chassisFront: 2.2, pivot: 1.6, rider: 2.6 },
+      geometry: {
+        wheelR: [-37, 0], wheelF: [37, 0],
+        chassisRear: [-18, -24], chassisFront: [20, -27], pivot: [0, -11], rider: [-9, -44],
+        head: [-4, -56],
+      },
+      suspension: { rearRate: 1500, frontRate: 1250, rearDamping: 90, frontDamping: 76, travel: 11 },
+      engine: { accel: 1200, maxSpeed: 980, turboAccel: 1500, turboMaxSpeed: 1350, reverseAccel: 300 },
+      tireGrip: 1.5,
+      airDrag: 0.0002,
+      control: { airTorque: 9.5, groundTorque: 6.5, maxSpin: 6.2, airDamping: 0.8 },
+      crash: { hardLanding: 2100, badLandingAngle: 1.2 },
+    }),
+  };
+
   // ---------- Terreno ----------
   function groundY(T, x) {
     const ys = T.ys, SEG = T.SEG;
@@ -106,8 +136,9 @@
     return Object.assign({ a, b, L0, compliance: 0, damping: 0, min: -Infinity, max: Infinity }, opts || {});
   }
 
-  function createBike(x, T) {
-    const g = PHYS.geometry, m = PHYS.mass, R = PHYS.wheelRadius;
+  function createBike(x, T, cfg) {
+    const P = cfg || PHYS;
+    const g = P.geometry, m = P.mass, R = P.wheelRadius;
     // apoia a moto no chão já inclinada conforme o terreno
     const yR = groundY(T, x + g.wheelR[0]) - R - 1, yF = groundY(T, x + g.wheelF[0]) - R - 1;
     const ang = Math.atan2(yF - yR, g.wheelF[0] - g.wheelR[0]);
@@ -120,7 +151,7 @@
     const cR = mk('chassisRear', m.chassisRear, 7, 'body');
     const cF = mk('chassisFront', m.chassisFront, 7, 'body');
     const pv = mk('pivot', m.pivot, 6, 'body');
-    const rd = mk('rider', m.rider, PHYS.crash.riderRadius, 'rider');
+    const rd = mk('rider', m.rider, P.crash.riderRadius, 'rider');
     const parts = [wR, wF, cR, cF, pv, rd];
 
     // chassi + piloto: corpo rígido
@@ -138,14 +169,14 @@
       s.k = rate / (proj * proj);
       s.compliance = 1 / s.k;
       s.damping = damp / (proj * proj);
-      s.rebound = s.damping * PHYS.suspension.reboundRatio;
-      s.min = s.L0 - PHYS.suspension.travel * proj;
-      s.max = s.L0 + PHYS.suspension.topOut * proj;
+      s.rebound = s.damping * P.suspension.reboundRatio;
+      s.min = s.L0 - P.suspension.travel * proj;
+      s.max = s.L0 + P.suspension.topOut * proj;
       s.proj = proj;
       return s;
     };
-    const shockR = spring(wR, cR, PHYS.suspension.rearRate, PHYS.suspension.rearDamping);
-    const shockF = spring(wF, cF, PHYS.suspension.frontRate, PHYS.suspension.frontDamping);
+    const shockR = spring(wR, cR, P.suspension.rearRate, P.suspension.rearDamping);
+    const shockF = spring(wF, cF, P.suspension.frontRate, P.suspension.frontDamping);
 
     // a cabeça é um ponto fixo do referencial do chassi (não tem massa própria)
     const ux = (cF.x - cR.x), uy = (cF.y - cR.y), ul = Math.hypot(ux, uy);
@@ -154,6 +185,7 @@
     const headLocal = [(dx * ux + dy * uy) / ul, (-dx * uy + dy * ux) / ul];
 
     const bike = {
+      cfg: P, kind: P.kind || 'moto',
       R: wR, F: wF, Cr: cR, Cf: cF, Pv: pv, P: rd, parts,
       H: { x: hx, y: hy, px: hx, py: hy },
       rigid, arms: [armR, armF], springs: [shockR, shockF], shockR, shockF, headLocal,
@@ -238,7 +270,8 @@
 
   // ---------- Passo da simulação ----------
   function step(b, input, dt, T) {
-    const n = PHYS.substeps, h = dt / n;
+    const P = b.cfg;
+    const n = P.substeps, h = dt / n;
     const parts = b.parts;
     for (const p of parts) { p.px = p.x; p.py = p.y; }
     b.H.px = b.H.x; b.H.py = b.H.y;
@@ -246,7 +279,7 @@
     b.impactR = 0; b.impactF = 0; b.touchdown = false; b.riderHit = false; b.headHit = false; b.slipping = false;
     const wasAir = !b.gR && !b.gF;
     let anyWheel = false, groundedR = false, groundedF = false;
-    const E = PHYS.engine, C = PHYS.control;
+    const E = P.engine, C = P.control;
     const M = b.massTotal;
 
     for (let s = 0; s < n; s++) {
@@ -255,9 +288,9 @@
 
       // forças externas: gravidade e arrasto do ar (proporcional a v²)
       const vmag = Math.hypot(bs.vx, bs.vy);
-      const drag = PHYS.airDrag * vmag;
+      const drag = P.airDrag * vmag;
       for (const p of parts) {
-        p.vy += PHYS.gravity * h;
+        p.vy += P.gravity * h;
         p.vx -= p.vx * drag * h; p.vy -= p.vy * drag * h;
       }
 
@@ -314,7 +347,7 @@
         const nx = p.nx, ny = p.ny, tx = -ny, ty = nx;
         const vnPre = p.ovx * nx + p.ovy * ny;          // antes da correção (negativo = indo contra o chão)
         const vn = p.vx * nx + p.vy * ny;
-        const e = p.kind === 'wheel' ? PHYS.restitution : PHYS.bodyRestitution;
+        const e = p.kind === 'wheel' ? P.restitution : P.bodyRestitution;
         const vnTarget = vnPre < -60 ? -e * vnPre : 0;
         const dvn = vnTarget - vn;
         p.vx += nx * dvn; p.vy += ny * dvn;
@@ -327,7 +360,7 @@
           const isRear = p === b.R;
           if (isRear) { groundedR = true; if (impact > b.impactR) b.impactR = impact; }
           else { groundedF = true; if (impact > b.impactF) b.impactF = impact; }
-          const gripMax = PHYS.tireGrip * jn;
+          const gripMax = P.tireGrip * jn;
           let jt = 0;
           if (isRear && input.throttle) {
             const vmax = input.turbo ? E.turboMaxSpeed : E.maxSpeed;
@@ -337,7 +370,7 @@
             if (jt > gripMax) { jt = gripMax; b.slipping = true; }
           } else if (input.brake) {
             const share = isRear ? 0.4 : 0.6;
-            const brakeJ = Math.min(PHYS.brakeDecel * M * share * h, gripMax, p.m * Math.abs(vt));
+            const brakeJ = Math.min(P.brakeDecel * M * share * h, gripMax, p.m * Math.abs(vt));
             if (vt > 8) jt = -brakeJ;                                   // freando para a frente
             else if (vt < -E.reverseMaxSpeed * 1.1) jt = brakeJ;        // descendo de ré rápido demais: segura
             else if (isRear) {
@@ -347,12 +380,12 @@
             }
           }
           // resistência ao rolamento
-          const rr = Math.min(PHYS.rollingResistance * jn, p.m * Math.abs(vt + jt * p.w));
+          const rr = Math.min(P.rollingResistance * jn, p.m * Math.abs(vt + jt * p.w));
           jt -= Math.sign(vt + jt * p.w) * rr;
           p.vx += tx * jt * p.w; p.vy += ty * jt * p.w;
         } else {
           // partes do corpo raspando no chão: atrito de Coulomb
-          const jf = Math.min(PHYS.bodyFriction * jn, p.m * Math.abs(vt));
+          const jf = Math.min(P.bodyFriction * jn, p.m * Math.abs(vt));
           p.vx -= tx * Math.sign(vt) * jf * p.w; p.vy -= ty * Math.sign(vt) * jf * p.w;
           if (p.kind === 'rider') b.riderHit = true;
         }
@@ -366,11 +399,11 @@
     const [hx, hy] = b.headLocal;
     b.H.x = b.P.x + (ux * hx - uy * hy) / ul;
     b.H.y = b.P.y + (uy * hx + ux * hy) / ul;
-    const hc = nearest(T, b.H.x, b.H.y, PHYS.crash.headRadius);
-    b.headHit = hc.d < PHYS.crash.headRadius + 0.5;
+    const hc = nearest(T, b.H.x, b.H.y, P.crash.headRadius);
+    b.headHit = hc.d < P.crash.headRadius + 0.5;
 
     // velocidade ao longo do chão (roda traseira) e giro das rodas
-    const R = PHYS.wheelRadius;
+    const R = P.wheelRadius;
     const vtOf = (p) => (p.contact ? p.vx * -p.ny + p.vy * p.nx : p.vx);
     const vR = vtOf(b.R), vF = vtOf(b.F);
     b.speed = vR;
@@ -405,7 +438,8 @@
 
   // Avalia se a moto caiu: cabeça ou corpo do piloto no chão, impacto forte ou pouso muito torto
   function crashCheck(b) {
-    const Cc = PHYS.crash;
+    const P = b.cfg;
+    const Cc = P.crash;
     if (b.headHit) return 'cabeça';
     if (b.riderHit) return 'corpo';
     if (Math.max(b.impactR, b.impactF) > Cc.hardLanding) return 'impacto';
@@ -423,10 +457,10 @@
     lerpP(v.R, b.R); lerpP(v.F, b.F); lerpP(v.H, b.H);
     v.spinR = b.prevSpinR + (b.spinR - b.prevSpinR) * alpha;
     v.spinF = b.prevSpinF + (b.spinF - b.prevSpinF) * alpha;
-    v.gR = b.gR; v.gF = b.gF; v.vt = b.vt;
+    v.gR = b.gR; v.gF = b.gF; v.vt = b.vt; v.kind = b.kind;
     v.susp = b.susp; v.suspR = b.suspR; v.suspF = b.suspF;
     return v;
   }
 
-  S.Physics = { PHYS, createBike, step, crashCheck, view, nearest, groundY };
+  S.Physics = { PHYS, VEHICLES, createBike, step, crashCheck, view, nearest, groundY };
 })();
